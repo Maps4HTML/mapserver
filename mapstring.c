@@ -59,7 +59,7 @@
 
 #include "mapentities.h"
 
-#ifdef NEED_STRRSTR
+#ifndef HAVE_STRRSTR
 /*
 ** Copyright (c) 2000-2004  University of Illinois Board of Trustees
 ** Copyright (c) 2000-2005  Mark D. Roth

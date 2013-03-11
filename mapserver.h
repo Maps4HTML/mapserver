@@ -29,16 +29,8 @@
 #ifndef MAP_H
 #define MAP_H
 
-/*
-** MapServer version - to be updated for every release
-*/
-#define MS_VERSION "6.3-dev"
+#include "mapserver-config.h"
 
-#define MS_VERSION_MAJOR    6
-#define MS_VERSION_MINOR    3
-#define MS_VERSION_REV      0
-
-#define MS_VERSION_NUM (MS_VERSION_MAJOR*10000+MS_VERSION_MINOR*100+MS_VERSION_REV)
 
 
 /*
@@ -2050,7 +2042,7 @@ extern "C" {
   MS_DLL_EXPORT char *strdup(char *s);
 #endif /* NEED_STRDUP */
 
-#ifdef NEED_STRRSTR
+#ifndef HAVE_STRRSTR
   MS_DLL_EXPORT char *strrstr(char *string, char *find);
 #endif /* NEED_STRRSTR */
 
