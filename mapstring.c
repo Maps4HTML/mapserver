@@ -114,7 +114,7 @@ char *strrstr(char *string, char *find)
 }
 #endif
 
-#ifdef NEED_STRLCAT
+#ifndef HAVE_STRLCAT
 /*
  * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
  *
@@ -166,7 +166,7 @@ size_t strlcat(char *dst, const char *src, size_t siz)
 }
 #endif
 
-#ifdef NEED_STRLCPY
+#ifndef HAVE_STRLCPY
 /*
  * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
  * All rights reserved.
@@ -226,7 +226,7 @@ strlcpy(char *dst, const char *src, size_t siz)
 }
 #endif
 
-#ifdef NEED_STRCASESTR
+#ifndef HAVE_STRCASESTR
 /*-
  * Copyright (c) 1990, 1993
  *  The Regents of the University of California.  All rights reserved.
@@ -278,7 +278,7 @@ char *strcasestr(const char *s, const char *find)
 }
 #endif
 
-#ifdef NEED_STRDUP
+#ifndef HAVE_STRDUP
 char  *strdup(char *s)
 {
   char  *s1;
@@ -294,7 +294,7 @@ char  *strdup(char *s)
 }
 #endif
 
-#ifdef NEED_STRNCASECMP
+#ifndef HAVE_STRNCASECMP
 int strncasecmp(const char *s1, const char *s2, int len)
 {
   register const char *cp1, *cp2;
@@ -332,7 +332,7 @@ int strncasecmp(const char *s1, const char *s2, int len)
 }
 #endif
 
-#ifdef NEED_STRCASECMP
+#ifndef HAVE_STRCASECMP
 int strcasecmp(const char *s1, const char *s2)
 {
   register const char *cp1, *cp2;

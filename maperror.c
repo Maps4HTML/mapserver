@@ -515,9 +515,6 @@ char *msGetVersion()
 #if (defined USE_GD_JPEG || defined USE_JPEG)
   strcat(version, " OUTPUT=JPEG");
 #endif
-#ifdef USE_PDF
-  strcat(version, " OUTPUT=PDF");
-#endif
 #ifdef USE_KML
   strcat(version, " OUTPUT=KML");
 #endif

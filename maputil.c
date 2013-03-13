@@ -1716,7 +1716,7 @@ shapeObj *msOffsetCurve(shapeObj *p, double offset)
 {
   shapeObj *ret;
   int i, j, first,idx,ok=0;
-#if defined HAVE_GEOS_OFFSET_CURVE
+#if defined USE_GEOS && (GEOS_VERSION_MAJOR > 3 || (GEOS_VERSION_MAJOR == 3 && GEOS_VERSION_MINOR >= 3))
   ret = msGEOSOffsetCurve(p,offset);
   /* GEOS curve offsetting can fail sometimes, we continue with our own implementation
    if that is the case.*/

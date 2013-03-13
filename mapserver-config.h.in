@@ -13,6 +13,25 @@
 #cmakedefine USE_GDAL
 #cmakedefine USE_OGR
 #cmakedefine USE_WMS_SVR
+#cmakedefine USE_WFS_LYR
+#cmakedefine USE_WMS_LYR
+#cmakedefine USE_CURL
+
+
 #cmakedefine HAVE_STRRSTR
+#cmakedefine HAVE_STRCASECMP
+#cmakedefine HAVE_STRCASESTR
+#cmakedefine HAVE_STRDUP
+#cmakedefine HAVE_STRLCAT
+#cmakedefine HAVE_STRLCPY
+#cmakedefine HAVE_STRLEN
+#cmakedefine HAVE_STRNCASECMP
+#cmakedefine HAVE_VSNPRINTF
+#cmakedefine HAVE_DLFCN_H
+
+#cmakedefine HAVE_LRINTF
+#cmakedefine HAVE_LRINT
+#cmakedefine HAVE_SYNC_FETCH_AND_ADD
+     
 
 #endif

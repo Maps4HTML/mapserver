@@ -30,6 +30,7 @@
  * This should be changed to a test on the presence of libcurl which
  * is really what the real dependency is.
  */
+#include "mapserver-config.h"
 #if defined(USE_CURL)
 
 #include "mapserver.h"

@@ -37,7 +37,7 @@
 ** Main includes. If a particular header was needed by several .c files then
 ** I just put it here. What the hell, it works and it's all right here. -SDL-
 */
-#if !defined(NEED_STRCASESTR) && !defined(_GNU_SOURCE)
+#if defined(HAVE_STRCASESTR) && !defined(_GNU_SOURCE)
 #define _GNU_SOURCE /* Required for <string.h> strcasestr() defn */
 #endif
 
@@ -117,10 +117,6 @@ typedef ms_uint32 *     ms_bitarray;
 
 #ifdef USE_GD
 #include <gd.h>
-#endif
-
-#if defined USE_PDF
-#include <pdflib.h>
 #endif
 
 
@@ -318,7 +314,7 @@ extern "C" {
      conversion to nearest int.  We avoid lrint() for now because it
      would be hard to include math.h "properly". */
 
-#if defined(WE_HAVE_THE_C99_LRINT) && !defined(USE_GENERIC_MS_NINT)
+#if defined(HAVE_LRINT) && !defined(USE_GENERIC_MS_NINT)
 #   define MS_NINT(x) lrint(x)
   /*#   define MS_NINT(x) lround(x) */
 #elif defined(_MSC_VER) && defined(_WIN32) && !defined(USE_GENERIC_MS_NINT)
@@ -2038,7 +2034,7 @@ extern "C" {
   MS_DLL_EXPORT char* msStringEscape( const char * pszString );
   MS_DLL_EXPORT int msStringInArray( const char * pszString, char **array, int numelements);
 
-#ifdef NEED_STRDUP
+#ifndef HAVE_STRDUP
   MS_DLL_EXPORT char *strdup(char *s);
 #endif /* NEED_STRDUP */
 
@@ -2046,23 +2042,23 @@ extern "C" {
   MS_DLL_EXPORT char *strrstr(char *string, char *find);
 #endif /* NEED_STRRSTR */
 
-#ifdef NEED_STRCASESTR
+#ifndef HAVE_STRCASESTR
   MS_DLL_EXPORT char *strcasestr(const char *s, const char *find);
 #endif /* NEED_STRCASESTR */
 
-#ifdef NEED_STRNCASECMP
+#ifndef HAVE_STRNCASECMP
   MS_DLL_EXPORT int strncasecmp(const char *s1, const char *s2, int len);
 #endif /* NEED_STRNCASECMP */
 
-#ifdef NEED_STRCASECMP
+#ifndef HAVE_STRCASECMP
   MS_DLL_EXPORT int strcasecmp(const char *s1, const char *s2);
 #endif /* NEED_STRCASECMP */
 
-#ifdef NEED_STRLCAT
+#ifndef HAVE_STRLCAT
   MS_DLL_EXPORT size_t strlcat(char *dst, const char *src, size_t siz);
 #endif /* NEED_STRLCAT */
 
-#ifdef NEED_STRLCPY
+#ifndef HAVE_STRLCPY
   MS_DLL_EXPORT size_t strlcpy(char *dst, const char *src, size_t siz);
 #endif /* NEED_STRLCAT */
 
@@ -2911,7 +2907,7 @@ extern "C" {
 #define MS_MAP_RENDERER(map) ((map)->outputformat->vtable)
 
 shapeObj *msOffsetCurve(shapeObj *p, double offset);
-#if defined HAVE_GEOS_OFFSET_CURVE
+#if defined USE_GEOS && (GEOS_VERSION_MAJOR > 3 || (GEOS_VERSION_MAJOR == 3 && GEOS_VERSION_MINOR >= 3))
 shapeObj *msGEOSOffsetCurve(shapeObj *p, double offset);
 #endif
 
