@@ -96,6 +96,8 @@ typedef uint32_t        ms_uint32;
 #define vsnprintf _vsnprintf
 #endif
 
+#include "mapserver-api.h"
+
 /*forward declaration of rendering object*/
 typedef struct rendererVTableObj rendererVTableObj;
 typedef struct tileCacheObj tileCacheObj;
@@ -870,7 +872,7 @@ extern "C" {
   /*      applied within a classObj                                       */
   /************************************************************************/
 
-  typedef struct {
+  struct styleObj{
 #ifdef SWIG
     %immutable;
 #endif /* SWIG */
@@ -934,7 +936,7 @@ extern "C" {
     attributeBindingObj bindings[MS_STYLE_BINDING_LENGTH];
     int numbindings;
 #endif
-  } styleObj;
+  };
 
 
 
@@ -970,7 +972,7 @@ extern "C" {
   /*      parameters needed to annotate a layer, legend or scalebar       */
   /************************************************************************/
 
-  typedef struct {
+  struct labelObj{
 #ifdef SWIG
     %immutable;
 #endif /* SWIG */
@@ -1047,15 +1049,15 @@ extern "C" {
     shapeObj *annopoly;
 
     labelLeaderObj leader;
-  } labelObj;
+  };
 
   /************************************************************************/
   /*                               classObj                               */
   /*                                                                      */
   /*      basic symbolization and classification information              */
   /************************************************************************/
-
-  typedef struct classObj {
+  
+  struct classObj {
 #ifndef SWIG
     expressionObj expression; /* the expression to be matched */
 #endif
@@ -1121,7 +1123,7 @@ extern "C" {
 
     char *group;
     labelLeaderObj leader;
-  } classObj;
+  };
 
   /************************************************************************/
   /*                         labelCacheMemberObj                          */
@@ -1400,7 +1402,7 @@ extern "C" {
   /*                                                                      */
   /*      A wrapper for GD and other images.                              */
   /************************************************************************/
-  typedef struct {
+  struct imageObj{
 #ifdef SWIG
     %immutable;
 #endif
@@ -1434,7 +1436,7 @@ extern "C" {
     ms_bitarray  img_mask;
     pointObj refpt;
 #endif
-  } imageObj;
+  };
 
   /************************************************************************/
   /*                               layerObj                               */
@@ -1454,7 +1456,7 @@ extern "C" {
      scaleTokenEntryObj *tokens;
   } scaleTokenObj;
   
-  typedef struct layerObj {
+  struct layerObj {
 
     char *classitem; /* .DBF item to be used for symbol lookup */
 
@@ -1633,7 +1635,7 @@ extern "C" {
 #ifndef SWIG    
     expressionObj _geomtransform;
 #endif    
-  } layerObj;
+  };
 
   /************************************************************************/
   /*                                mapObj                                */
@@ -1643,7 +1645,7 @@ extern "C" {
   /************************************************************************/
 
   /* MAP OBJECT -  */
-  typedef struct mapObj { /* structure for a map */
+  struct mapObj { /* structure for a map */
     char *name; /* small identifier for naming etc. */
     int status; /* is map creation on or off */
     int height, width;
@@ -1749,7 +1751,7 @@ extern "C" {
 
     queryObj query;
 #endif
-  } mapObj;
+  };
 
   /************************************************************************/
   /*                             layerVTable                              */
