@@ -1,37 +1,39 @@
 #ifndef _MAPSERVER_CONFIG_H
 #define _MAPSERVER_CONFIG_H
 
-#define MS_VERSION_MAJOR @MapServer_VERSION_MAJOR@
-#define MS_VERSION_MINOR @MapServer_VERSION_MINOR@
-#define MS_VERSION_REV @MapServer_VERSION_REVISION@
-#define MS_VERSION "@MapServer_VERSION_STRING@"
-#define MS_VERSION_NUM  @MapServer_VERSION_NUM@ 
+#cmakedefine USE_PROJ 1
+#cmakedefine USE_GD 1
+#cmakedefine USE_POSTGIS 1
+#cmakedefine USE_GDAL 1
+#cmakedefine USE_OGR 1
+#cmakedefine USE_WMS_SVR 1
+#cmakedefine USE_WFS_LYR 1
+#cmakedefine USE_WMS_LYR 1
+#cmakedefine USE_CURL 1
+#cmakedefine USE_CAIRO 1
+#cmakedefine USE_GEOS 1
+#cmakedefine USE_GIF 1
+#cmakedefine USE_JPEG 1
+#cmakedefine USE_PNG 1
+#cmakedefine USE_ICONV 1
+#cmakedefine USE_FRIBIDI 1
+#cmakedefine USE_LIBXML2 1
 
-#cmakedefine USE_PROJ
-#cmakedefine USE_GD
-#cmakedefine USE_POSTGIS
-#cmakedefine USE_GDAL
-#cmakedefine USE_OGR
-#cmakedefine USE_WMS_SVR
-#cmakedefine USE_WFS_LYR
-#cmakedefine USE_WMS_LYR
-#cmakedefine USE_CURL
 
+#cmakedefine HAVE_STRRSTR 1
+#cmakedefine HAVE_STRCASECMP 1
+#cmakedefine HAVE_STRCASESTR 1
+#cmakedefine HAVE_STRDUP 1
+#cmakedefine HAVE_STRLCAT 1
+#cmakedefine HAVE_STRLCPY 1
+#cmakedefine HAVE_STRLEN 1
+#cmakedefine HAVE_STRNCASECMP 1
+#cmakedefine HAVE_VSNPRINTF 1
+#cmakedefine HAVE_DLFCN_H 1
 
-#cmakedefine HAVE_STRRSTR
-#cmakedefine HAVE_STRCASECMP
-#cmakedefine HAVE_STRCASESTR
-#cmakedefine HAVE_STRDUP
-#cmakedefine HAVE_STRLCAT
-#cmakedefine HAVE_STRLCPY
-#cmakedefine HAVE_STRLEN
-#cmakedefine HAVE_STRNCASECMP
-#cmakedefine HAVE_VSNPRINTF
-#cmakedefine HAVE_DLFCN_H
-
-#cmakedefine HAVE_LRINTF
-#cmakedefine HAVE_LRINT
-#cmakedefine HAVE_SYNC_FETCH_AND_ADD
+#cmakedefine HAVE_LRINTF 1
+#cmakedefine HAVE_LRINT 1
+#cmakedefine HAVE_SYNC_FETCH_AND_ADD 1
      
 
 #endif

@@ -577,9 +577,6 @@ char *msGetVersion()
 #ifdef USE_TIFF
   strcat(version, " INPUT=TIFF");
 #endif
-#ifdef USE_EPPL
-  strcat(version, " INPUT=EPPL7");
-#endif
 #ifdef USE_JPEG
   strcat(version, " INPUT=JPEG");
 #endif

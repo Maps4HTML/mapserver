@@ -8,6 +8,8 @@
 #ifndef MAPSERVER_API_H
 #define	MAPSERVER_API_H
 
+#include "mapserver-version.h"
+
 #ifdef	__cplusplus
 extern "C" {
 #endif

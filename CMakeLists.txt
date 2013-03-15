@@ -49,7 +49,19 @@ int main(int argc, char **argv) {
    }
 }" HAVE_SYNC_FETCH_AND_ADD)
 
-add_library(mapserver SHARED 
+option(WITH_FLEX_BISON "Regenerate parser" OFF)
+if(WITH_FLEX_BISON)
+   find_package(BISON)
+   find_package(FLEX)
+
+   BISON_TARGET(MapfileParser mapparser.y ${CMAKE_CURRENT_BUILD_DIR}/mapparser.c)
+   FLEX_TARGET(MapfileScanner maplexer.l ${CMAKE_CURRENT_BUILD_DIR}/maplexer.c COMPILE_FLAGS "--nounistd -Pmsyy -i")
+   ADD_FLEX_BISON_DEPENDENCY(MapfileScanner MapfileParser)
+endif(WITH_FLEX_BISON)
+
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+add_library(mapserver SHARED
 cgiutil.c mapgeos.c maporaclespatial.c mapsearch.c mapwms.c classobject.c
 mapgml.c mapoutput.c mapwmslayer.c layerobject.c mapgraticule.c mapows.c
 mapservutil.c mapxbase.c maphash.c mapowscommon.c mapshape.c mapxml.c mapbits.c
@@ -66,7 +78,7 @@ mapogcfiltercommon.c maprendering.c mapwcs20.c mapgd.c mapogcsld.c
 mapresample.c mapwfs.c mapgdal.c mapogcsos.c mapscale.c mapwfs11.c
 mapgeomtransform.c mapogroutput.c mapsde.c mapwfslayer.c mapagg.cpp mapkml.cpp
 mapogl.cpp mapoglrenderer.cpp mapgeomutil.cpp mapkmlrenderer.cpp
-mapoglcontext.cpp mapogr.cpp)
+mapoglcontext.cpp mapogr.cpp mapserver-api.c)
 
 set(FREETYPE_DIR ${FREETYPE_DIR} /usr/X11)
 find_package(FREETYPE REQUIRED)
@@ -108,6 +120,56 @@ if(WITH_GD)
   set (USE_GD 1)
   message(STATUS "...GD support activated")
 endif (WITH_GD)
+
+option(WITH_FRIBIDI "Choose if FriBidi glyph shaping support should be built in (usefull for left-to-right languages)" ON)
+
+if(WITH_FRIBIDI)
+  find_package(FRIBIDI REQUIRED)
+  include_directories(${FRIBIDI_INCLUDE_DIR})
+  target_link_libraries(mapserver ${FRIBIDI_LIBRARY})
+  set (USE_FRIBIDI 1)
+  message(STATUS "...FRIBIDI support activated")
+endif (WITH_FRIBIDI)
+
+option(WITH_ICONV "Choose if Iconv Internationalization support should be built in" ON)
+
+if(WITH_ICONV)
+  find_package(ICONV REQUIRED)
+  include_directories(${ICONV_INCLUDE_DIR})
+  target_link_libraries(mapserver ${ICONV_LIBRARY})
+  set (USE_ICONV 1)
+  message(STATUS "...ICONV support activated")
+endif (WITH_ICONV)
+
+option(WITH_LIBXML2 "Choose if Iconv Internationalization support should be built in" ON)
+
+if(WITH_LIBXML2)
+  find_package(LIBXML2 REQUIRED)
+  include_directories(${LIBXML2_INCLUDE_DIR})
+  target_link_libraries(mapserver ${LIBXML2_LIBRARIES})
+  set (USE_LIBXML2 1)
+  message(STATUS "...LIBXML2 support activated")
+endif (WITH_LIBXML2)
+
+option(WITH_CAIRO "Choose if CAIRO  rendering support should be built in (required for SVG and PDF output)" ON)
+
+if(WITH_CAIRO)
+  find_package(CAIRO REQUIRED)
+  include_directories(${CAIRO_INCLUDE_DIR})
+  target_link_libraries(mapserver ${CAIRO_LIBRARY})
+  set (USE_CAIRO 1)
+  message(STATUS "...CAIRO support activated")
+endif (WITH_CAIRO)
+
+option(WITH_GEOS "Choose if GEOS geometry operations support should be built in" ON)
+
+if(WITH_GEOS)
+   find_package(GEOS REQUIRED)
+   include_directories(${GEOS_INCLUDE_DIR})
+   target_link_libraries(mapserver ${GEOS_LIBRARY})
+  set (USE_GEOS 1)
+  message(STATUS "...GEOS support activated")
+endif (WITH_GEOS)
 
 option(WITH_POSTGIS "Choose if Postgis input support should be built in" ON)
 
@@ -190,14 +252,28 @@ endif((WITH_CLIENT_WMS) OR (WITH_CLIENT_WFS))
 find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIR})
 target_link_libraries(mapserver ${PNG_LIBRARY})
+set(USE_PNG 1)
 
 find_package(JPEG REQUIRED)
 include_directories(${JPEG_INCLUDE_DIR})
 target_link_libraries(mapserver ${JPEG_LIBRARY})
+set(USE_JPEG 1)
+
+find_package(GIF)
+include_directories(${GIF_INCLUDE_DIR})
+target_link_libraries(mapserver ${GIF_LIBRARY})
+if(GIF_FOUND)
+   set(USE_GIF 1)
+endif(GIF_FOUND)
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/mapserver-config.h.in"
   "${PROJECT_BINARY_DIR}/mapserver-config.h"
+  )
+
+configure_file (
+  "${PROJECT_SOURCE_DIR}/mapserver-version.h.in"
+  "${PROJECT_BINARY_DIR}/mapserver-version.h"
   )
 
 
@@ -210,4 +286,7 @@ target_link_libraries(shp2img mapserver)
 
 
 
+INSTALL(FILES mapserver-api.h mapserver-version.h DESTINATION include)
+INSTALL(TARGETS mapserver DESTINATION lib)
+INSTALL(TARGETS shp2img mapserv DESTINATION bin)
 
