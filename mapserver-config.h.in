@@ -3,10 +3,17 @@
 
 #cmakedefine USE_PROJ 1
 #cmakedefine USE_GD 1
+#cmakedefine USE_GD_GIF 1
+#cmakedefine USE_GD_PNG 1
+#cmakedefine USE_GD_JPEG 1
+#cmakedefine USE_GD_FREETYPE 1
 #cmakedefine USE_POSTGIS 1
 #cmakedefine USE_GDAL 1
 #cmakedefine USE_OGR 1
 #cmakedefine USE_WMS_SVR 1
+#cmakedefine USE_WCS_SVR 1
+#cmakedefine USE_WFS_SVR 1
+#cmakedefine USE_SOS_SVR 1
 #cmakedefine USE_WFS_LYR 1
 #cmakedefine USE_WMS_LYR 1
 #cmakedefine USE_CURL 1
@@ -18,6 +25,9 @@
 #cmakedefine USE_ICONV 1
 #cmakedefine USE_FRIBIDI 1
 #cmakedefine USE_LIBXML2 1
+#cmakedefine USE_FASTCGI 1
+#cmakedefine USE_MYSQL 1
+#cmakedefine USE_THREAD 1
 
 
 #cmakedefine HAVE_STRRSTR 1

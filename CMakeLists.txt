@@ -61,6 +61,8 @@ endif(WITH_FLEX_BISON)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
+set(CMAKE_LINK_INTERFACE_LIBRARIES "")
+
 add_library(mapserver SHARED
 cgiutil.c mapgeos.c maporaclespatial.c mapsearch.c mapwms.c classobject.c
 mapgml.c mapoutput.c mapwmslayer.c layerobject.c mapgraticule.c mapows.c
@@ -77,8 +79,13 @@ mapwcs.c maperror.c mapogcfilter.c mapregex.c mapwcs11.c mapfile.c
 mapogcfiltercommon.c maprendering.c mapwcs20.c mapgd.c mapogcsld.c
 mapresample.c mapwfs.c mapgdal.c mapogcsos.c mapscale.c mapwfs11.c
 mapgeomtransform.c mapogroutput.c mapsde.c mapwfslayer.c mapagg.cpp mapkml.cpp
-mapogl.cpp mapoglrenderer.cpp mapgeomutil.cpp mapkmlrenderer.cpp
-mapoglcontext.cpp mapogr.cpp mapserver-api.c)
+mapgeomutil.cpp mapkmlrenderer.cpp
+mapogr.cpp mapserver-api.c)
+
+add_executable(mapserv mapserv.c)
+target_link_libraries(mapserv mapserver)
+add_executable(shp2img shp2img.c)
+target_link_libraries(shp2img mapserver)
 
 set(FREETYPE_DIR ${FREETYPE_DIR} /usr/X11)
 find_package(FREETYPE REQUIRED)
@@ -98,13 +105,13 @@ if(WITH_PROJ)
   message(STATUS "...Proj support activated")
 endif (WITH_PROJ)
 
-option(WITH_WMS "EnableWMS Server support (requires proj support)" ON)
-
+option(WITH_WMS "Enable WMS Server support (requires proj support)" ON)
 if(WITH_WMS)
    if(USE_PROJ)
       set(USE_WMS_SVR 1)
+      message(STATUS "...WMS server support enabled")
    else(USE_PROJ)
-      message(STATUS "...WMS support disabled due to lack of proj support")
+      message(ERROR "...WMS support disabled due to lack of proj support")
    endif(USE_PROJ)
 else(WITH_WMS)
    message(STATUS "...WMS server support disabled")
@@ -118,6 +125,19 @@ if(WITH_GD)
   include_directories(${GD_INCLUDE_DIR})
   target_link_libraries(mapserver ${GD_LIBRARY})
   set (USE_GD 1)
+  if(GD_SUPPORTS_PNG)
+     set(USE_GD_PNG 1)
+  endif(GD_SUPPORTS_PNG)
+  if(GD_SUPPORTS_GIF)
+     set(USE_GD_GIF 1)
+  endif(GD_SUPPORTS_GIF)
+  if(GD_SUPPORTS_JPEG)
+     set(USE_GD_JPEG 1)
+  endif(GD_SUPPORTS_JPEG)
+  if(GD_SUPPORTS_FREETYPE)
+     set(USE_GD_FREETYPE 1)
+  endif(GD_SUPPORTS_FREETYPE)
+
   message(STATUS "...GD support activated")
 endif (WITH_GD)
 
@@ -144,15 +164,6 @@ if(WITH_ICONV)
   message(STATUS "...ICONV support activated")
 endif (WITH_ICONV)
 
-option(WITH_LIBXML2 "Choose if Iconv Internationalization support should be built in" ON)
-
-if(WITH_LIBXML2)
-  find_package(LIBXML2 REQUIRED)
-  include_directories(${LIBXML2_INCLUDE_DIR})
-  target_link_libraries(mapserver ${LIBXML2_LIBRARIES})
-  set (USE_LIBXML2 1)
-  message(STATUS "...LIBXML2 support activated")
-endif (WITH_LIBXML2)
 
 option(WITH_CAIRO "Choose if CAIRO  rendering support should be built in (required for SVG and PDF output)" ON)
 
@@ -163,6 +174,26 @@ if(WITH_CAIRO)
   set (USE_CAIRO 1)
   message(STATUS "...CAIRO support activated")
 endif (WITH_CAIRO)
+
+option(WITH_MYSQL "Choose if MYSQL joining support should be built in" OFF)
+
+if(WITH_MYSQL)
+  find_package(MYSQL REQUIRED)
+  include_directories(${MYSQL_INCLUDE_DIR})
+  target_link_libraries(mapserver ${MYSQL_LIBRARY})
+  set (USE_MYSQL 1)
+  message(STATUS "...MYSQL support activated")
+endif (WITH_MYSQL)
+
+option(WITH_FCGI "Choose if FastCGI support should be built in" ON)
+
+if(WITH_FCGI)
+  find_package(FCGI REQUIRED)
+  include_directories(${FCGI_INCLUDE_DIR})
+  target_link_libraries(mapserv ${FCGI_LIBRARY})
+  set (USE_FASTCGI 1)
+  message(STATUS "...FCGI support activated")
+endif (WITH_FCGI)
 
 option(WITH_GEOS "Choose if GEOS geometry operations support should be built in" ON)
 
@@ -247,9 +278,88 @@ if(WITH_CLIENT_WFS)
 endif(WITH_CLIENT_WFS)
 
 if((WITH_CLIENT_WMS) OR (WITH_CLIENT_WFS))
-     message(STATUS "...CURL support required, added...")
+     message(STATUS "...CURL support required, added")
      set(USE_CURL 1)
 endif((WITH_CLIENT_WMS) OR (WITH_CLIENT_WFS))
+
+option(WITH_WFS "Enable WFS Server support (requires PROJ and OGR support)" ON)
+if(WITH_WFS)
+   if(USE_PROJ AND USE_OGR)
+      set(USE_WFS_SVR 1)
+      message(STATUS "...WFS server support enabled")
+   else(USE_PROJ AND USE_OGR)
+     if( NOT USE_OGR)
+        message(ERROR "WFS Server support requires OGR support")
+     endif( NOT USE_OGR)
+     if(!USE_PROJ)
+        message(WARNING "Client WFS support requires PROJ support")
+     endif( NOT USE_PROJ)
+   endif(USE_PROJ AND USE_OGR)
+else(WITH_WFS)
+   message(STATUS "...WFS server support disabled")
+endif(WITH_WFS)
+
+option(WITH_WCS "Enable WCS Server support (requires PROJ and GDAL support)" ON)
+if(WITH_WCS)
+   if(USE_PROJ AND USE_GDAL)
+      set(USE_WCS_SVR 1)
+      message(STATUS "...WCS server support enabled")
+   else(USE_PROJ AND USE_GDAL)
+     if(NOT USE_GDAL)
+        message(ERROR "WCS Server support requires GDAL support")
+     endif(NOT USE_GDAL)
+     if(NOT USE_PROJ)
+        message(WARNING "Client WCS support requires PROJ support")
+     endif(NOT USE_PROJ)
+   endif(USE_PROJ AND USE_GDAL)
+else(WITH_WCS)
+   message(STATUS "...WCS server support disabled")
+endif(WITH_WCS)
+
+option(WITH_LIBXML2 "Choose if libxml2 support should be built in (used for sos, wcs 1.1,2.0 and wfs 1.1)" ON)
+if(WITH_LIBXML2)
+  find_package(LIBXML2 REQUIRED)
+  include_directories(${LIBXML2_INCLUDE_DIR})
+  target_link_libraries(mapserver ${LIBXML2_LIBRARIES})
+  set (USE_LIBXML2 1)
+  message(STATUS "...LIBXML2 support activated")
+endif (WITH_LIBXML2)
+
+if( USE_WCS_SVR AND NOT USE_LIBXML2 )
+   message(WARNING "WCS 1.1 and 2.0 require libxml2 support but it was not found. WCS 1.1 and 2.0 will not be supported by this build")
+endif( USE_WCS_SVR AND NOT USE_LIBXML2 )
+if( USE_WFS_SVR AND NOT USE_LIBXML2 )
+   message(WARNING "WFS 1.1 requires libxml2 support but it was not found. WFS 1.1 will not be supported by this build")
+endif( USE_WFS_SVR AND NOT USE_LIBXML2 )
+
+option(WITH_SOS "Enable SOS Server support (requires PROJ and libxml2 support)" ON)
+if(WITH_SOS)
+   if(USE_PROJ AND USE_LIBXML2)
+      set(USE_SOS_SVR 1)
+      message(STATUS "...SOS server support enabled")
+   else(USE_PROJ AND USE_LIBXML2)
+     if(NOT USE_LIBXML2)
+        message(ERROR "SOS Server support requires LIBXML2 support")
+     endif(NOT USE_LIBXML2)
+     if(NOT USE_PROJ)
+        message(WARNING "Client SOS support requires PROJ support")
+     endif(NOT USE_PROJ)
+   endif(USE_PROJ AND USE_LIBXML2)
+else(WITH_SOS)
+   message(STATUS "...SOS server support disabled")
+endif(WITH_SOS)
+
+
+option(WITH_THREADS "Choose if a thread-safe version of libmapserver should be built (only recommended for some mapscripts)" OFF)
+if(WITH_THREADS)
+   set( CMAKE_THREAD_PREFER_PTHREAD 1 )
+   find_package(Threads REQUIRED)
+   if (Threads_FOUND)
+      target_link_libraries (mapserver ${CMAKE_THREAD_LIBS_INIT})
+      set(USE_THREAD 1)
+      message(STATUS "...thread safety support requested, added...")
+   endif (Threads_FOUND)
+endif(WITH_THREADS)
 
 
 find_package(PNG REQUIRED)
@@ -262,12 +372,20 @@ include_directories(${JPEG_INCLUDE_DIR})
 target_link_libraries(mapserver ${JPEG_LIBRARY})
 set(USE_JPEG 1)
 
-find_package(GIF)
-include_directories(${GIF_INCLUDE_DIR})
-target_link_libraries(mapserver ${GIF_LIBRARY})
-if(GIF_FOUND)
-   set(USE_GIF 1)
-endif(GIF_FOUND)
+option(WITH_GIF "Enable GIF support (for PIXMAP loading)" ON)
+if(WITH_GIF)
+   find_package(GIF REQUIRED)
+   include_directories(${GIF_INCLUDE_DIR})
+   target_link_libraries(mapserver ${GIF_LIBRARY})
+   if(GIF_FOUND)
+      set(USE_GIF 1)
+   endif(GIF_FOUND)
+endif(WITH_GIF)
+
+option(WITH_PYTHON "Enable Python mapscript support" ON)
+if(WITH_PYTHON)
+   add_subdirectory("mapscript/python")
+endif(WITH_PYTHON)
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/mapserver-config.h.in"
@@ -282,14 +400,10 @@ configure_file (
 
 include_directories("${PROJECT_BINARY_DIR}")
 
-add_executable(mapserv mapserv.c)
-target_link_libraries(mapserv mapserver)
-add_executable(shp2img shp2img.c)
-target_link_libraries(shp2img mapserver)
 
 
 
-INSTALL(FILES mapserver-api.h mapserver-version.h DESTINATION include)
+INSTALL(FILES mapserver-api.h ${PROJECT_BINARY_DIR}/mapserver-version.h DESTINATION include)
 INSTALL(TARGETS mapserver DESTINATION lib)
 INSTALL(TARGETS shp2img mapserv DESTINATION bin)
 
