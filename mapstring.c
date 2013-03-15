@@ -44,7 +44,7 @@
  */
 
 #ifdef USE_FRIBIDI
-#if (defined(_WIN32) && !defined(__CYGWIN__)) || defined(USE_FRIBIDI2)
+#if (defined(_WIN32) && !defined(__CYGWIN__)) || defined(HAVE_FRIBIDI2)
 #include "fribidi.h"
 #else
 #include <fribidi/fribidi.h>
