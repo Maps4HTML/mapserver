@@ -49,9 +49,9 @@ IF(APPLE)
 #  SET(CMAKE_SHARED_MODULE_CREATE_C_FLAGS 
 #   "${CMAKE_SHARED_MODULE_CREATE_C_FLAGS} -Wl,-flat_namespace")
   SET(CMAKE_SHARED_MODULE_CREATE_C_FLAGS 
-   "-Wl,-flat_namespace,-undefined,dynamic_lookup")
+   "-Wl,-flat_namespace,-undefined,suppress")
   SET(CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS 
-   "-Wl,-flat_namespace,-undefined,dynamic_lookup")
+   "-Wl,-flat_namespace,-undefined,suppress")
   FOREACH(symbol
     __efree
     __emalloc
