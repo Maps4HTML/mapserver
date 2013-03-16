@@ -387,6 +387,11 @@ if(WITH_PYTHON)
    add_subdirectory("mapscript/python")
 endif(WITH_PYTHON)
 
+option(WITH_PHP "Enable Python mapscript support" ON)
+if(WITH_PHP)
+   add_subdirectory("mapscript/php")
+endif(WITH_PHP)
+
 configure_file (
   "${PROJECT_SOURCE_DIR}/mapserver-config.h.in"
   "${PROJECT_BINARY_DIR}/mapserver-config.h"
