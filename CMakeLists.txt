@@ -169,8 +169,8 @@ option(WITH_CAIRO "Choose if CAIRO  rendering support should be built in (requir
 
 if(WITH_CAIRO)
   find_package(Cairo REQUIRED)
-  include_directories(${CAIRO_INCLUDE_DIR})
-  target_link_libraries(mapserver ${CAIRO_LIBRARY})
+  include_directories(${CAIRO_INCLUDE_DIRS})
+  target_link_libraries(mapserver ${CAIRO_LIBRARIES})
   set (USE_CAIRO 1)
   message(STATUS "...CAIRO support activated")
 endif (WITH_CAIRO)
