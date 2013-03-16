@@ -1,6 +1,14 @@
 FIND_PACKAGE(PHP5 REQUIRED)
 INCLUDE_DIRECTORIES(${PHP5_INCLUDES})
 
+IF(APPLE)
+  SET(CMAKE_SHARED_MODULE_CREATE_C_FLAGS 
+   "-Wl,-undefined,dynamic_lookup")
+  SET(CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS 
+   "-Wl,-undefined,dynamic_lookup")
+ENDIF(APPLE)
+
+add_definitions(-DCOMPILE_DL=1)
 add_library(php_mapscript MODULE
    mapscript_error.c color.c rect.c hashtable.c web.c grid.c error.c
    referencemap.c querymap.c outputformat.c scalebar.c label.c legend.c
