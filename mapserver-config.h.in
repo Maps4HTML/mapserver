@@ -33,6 +33,7 @@
 #cmakedefine USE_ORACLESPATIAL 1
 #cmakedefine USE_ORACLE_PLUGIN 1
 #cmakedefine USE_EXEMPI 1
+#cmakedefine USE_XMLMAPFILE 1
 
 /*windows specific hacks*/
 #if defined(_WIN32)
