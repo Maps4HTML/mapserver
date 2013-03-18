@@ -1490,7 +1490,7 @@ int msHexToInt(char *hex)
 char *msGetFriBidiEncodedString(const char *string, const char *encoding)
 {
   FriBidiChar logical[MAX_STR_LEN];
-  FriBidiCharType base = FRIBIDI_TYPE_ON;
+  FriBidiParType base = FRIBIDI_TYPE_ON;
   size_t len;
 
 #ifdef FRIBIDI_NO_CHARSETS
@@ -1610,7 +1610,7 @@ char *msGetEncodedString(const char *string, const char *encoding)
 #ifdef USE_FRIBIDI
   msAcquireLock(TLOCK_FRIBIDI);
   if(fribidi_parse_charset ((char*)encoding)) {
-    int ret = msGetFriBidiEncodedString(string, encoding);
+    char *ret = msGetFriBidiEncodedString(string, encoding);
     msReleaseLock(TLOCK_FRIBIDI);
     return ret;
   }
