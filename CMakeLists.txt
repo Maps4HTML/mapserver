@@ -106,6 +106,7 @@ target_link_libraries(shp2img mapserver)
 
 #options suported by the cmake builder
 option(WITH_PROJ "Choose if reprojection support should be built in" ON)
+option(WITH_KML "Enable native KML output support (requires libxml2 support)" OFF)
 option(WITH_SOS "Enable SOS Server support (requires PROJ and libxml2 support)" OFF)
 option(WITH_WMS "Enable WMS Server support (requires proj support)" ON)
 option(WITH_GD "Choose if (old) GD support should be built in" OFF)
@@ -127,6 +128,7 @@ option(WITH_THREADS "Choose if a thread-safe version of libmapserver should be b
 option(WITH_GIF "Enable GIF support (for PIXMAP loading)" ON)
 option(WITH_PYTHON "Enable Python mapscript support" ON)
 option(WITH_PHP "Enable Python mapscript support" ON)
+option(WITH_POINT_Z_M "include Z and M coordinates in point structure (advanced, not recommended)" OFF)
 option(WITH_FLEX_BISON "Regenerate parser" OFF)
 
 find_package(PNG)
@@ -406,6 +408,17 @@ if(WITH_SOS)
   endif(USE_PROJ AND USE_LIBXML2)
 endif(WITH_SOS)
 
+if(WITH_POINT_Z_M)
+  set(USE_POINT_Z_M 1)
+endif(WITH_POINT_Z_M)
+
+if(WITH_KML)
+  if(USE_LIBXML2)
+    set(USE_KML 1)
+  else(USE_LIBXML2)
+    report_dependency_error(KML LIBXML2)
+  endif(USE_LIBXML2)
+endif(WITH_KML)
 
 if(WITH_THREADS)
    set( CMAKE_THREAD_PREFER_PTHREAD 1 )
@@ -496,6 +509,8 @@ status_optional_feature("SOS SERVER" "${USE_SOS_SVR}")
 status_optional_feature("WMS CLIENT" "${USE_WMS_LYR}")
 status_optional_feature("WFS CLIENT" "${USE_WFS_LYR}")
 status_optional_feature("Thread-safety support" "${USE_THREAD}")
+status_optional_feature("KML output" "${USE_KML}")
+status_optional_feature("Z+M point coordinate support" "${USE_POINT_Z_M}")
 
 message(STATUS " * Mapscripts")
 status_optional_feature("Python" "${USE_PYTHON_MAPSCRIPT}")
@@ -503,7 +518,9 @@ status_optional_feature("PHP" "${USE_PHP_MAPSCRIPT}")
 
 include_directories("${PROJECT_BINARY_DIR}")
 
-
+if(WIN32)
+add_definitions(-DREGEX_MALLOC)
+endif(WIN32)
 
 
 INSTALL(FILES mapserver-api.h ${PROJECT_BINARY_DIR}/mapserver-version.h DESTINATION include)

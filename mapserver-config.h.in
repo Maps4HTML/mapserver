@@ -28,6 +28,8 @@
 #cmakedefine USE_FASTCGI 1
 #cmakedefine USE_MYSQL 1
 #cmakedefine USE_THREAD 1
+#cmakedefine USE_KML 1
+#cmakedefine USE_POINT_Z_M 1
 
 
 #cmakedefine HAVE_STRRSTR 1
