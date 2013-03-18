@@ -11,8 +11,8 @@ include(FindPkgConfig)
 pkg_check_modules(LIBEXEMPI exempi-2.0)
 
 find_path(LIBEXEMPI_INCLUDE_DIR
-    NAMES exempi/xmp.h
-    PATH_SUFFIXES exempi-2.0
+    NAMES xmp.h
+    PATH_SUFFIXES exempi-2.0 exempi-2.0/exempi exempi 
     PATHS ${LIBEXEMPI_INCLUDEDIR})
 find_library(LIBEXEMPI_LIBRARIES NAMES exempi ${LIBEXEMPI_LIBRARY_DIRS})
 
