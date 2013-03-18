@@ -138,6 +138,8 @@ option(WITH_XMLMAPFILE "include native xml mapfile support (requires libxslt/lib
 
 option(WITH_FLEX_BISON "Regenerate parser" OFF)
 
+#TODO: USE_OGL? , USE_SDE, USE_CLUSTER_EXTERNAL USE_CLUSTER_PLUGIN, USE_MSSQL2008, USE_MSSQL2008_PLUGIN
+
 find_package(PNG)
 if(PNG_FOUND)
   include_directories(${PNG_INCLUDE_DIR})
@@ -258,7 +260,6 @@ if(WITH_MYSQL)
 endif (WITH_MYSQL)
 
 if(WITH_ORACLESPATIAL)
-#TODO:USE_ORACLE_PLUGIN on windows
   if(NOT DEFINED ENV{ORACLE_HOME})
     MESSAGE( FATAL_ERROR "ORACLE_HOME environment variable not set, needed for detection")
   endif()
@@ -383,6 +384,7 @@ endif(WITH_CLIENT_WFS)
 if(WITH_WFS)
   if(USE_PROJ AND USE_OGR)
     set(USE_WFS_SVR 1)
+    #TODO: set WFS_USE_LIBXML2 ?
   else(USE_PROJ AND USE_OGR)
     if( NOT USE_OGR)
       report_dependency_error(WFS OGR)
