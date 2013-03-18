@@ -2,8 +2,8 @@
 # Once done, this will define
 #
 #  CAIRO_FOUND - system has Cairo
-#  CAIRO_INCLUDE_DIRS - the Cairo include directories
-#  CAIRO_LIBRARIES - link these to use Cairo
+#  CAIRO_INCLUDE_DIR - the Cairo include directories
+#  CAIRO_LIBRARY - link these to use Cairo
 #
 # Copyright (C) 2012 Raphael Kubo da Costa <rakuco@webkit.org>
 #
@@ -31,22 +31,22 @@
 FIND_PACKAGE(PkgConfig)
 PKG_CHECK_MODULES(PC_CAIRO cairo) # FIXME: After we require CMake 2.8.2 we can pass QUIET to this call.
 
-FIND_PATH(CAIRO_INCLUDE_DIRS
+FIND_PATH(CAIRO_INCLUDE_DIR
     NAMES cairo.h
     HINTS ${PC_CAIRO_INCLUDEDIR}
-          ${PC_CAIRO_INCLUDE_DIRS}
+          ${PC_CAIRO_INCLUDE_DIR}
     PATH_SUFFIXES cairo
 )
 
-FIND_LIBRARY(CAIRO_LIBRARIES
+FIND_LIBRARY(CAIRO_LIBRARY
     NAMES cairo
     HINTS ${PC_CAIRO_LIBDIR}
           ${PC_CAIRO_LIBRARY_DIRS}
 )
 
-IF (CAIRO_INCLUDE_DIRS)
-    IF (EXISTS "${CAIRO_INCLUDE_DIRS}/cairo-version.h")
-        FILE(READ "${CAIRO_INCLUDE_DIRS}/cairo-version.h" CAIRO_VERSION_CONTENT)
+IF (CAIRO_INCLUDE_DIR)
+    IF (EXISTS "${CAIRO_INCLUDE_DIR}/cairo-version.h")
+        FILE(READ "${CAIRO_INCLUDE_DIR}/cairo-version.h" CAIRO_VERSION_CONTENT)
 
         STRING(REGEX MATCH "#define +CAIRO_VERSION_MAJOR +([0-9]+)" _dummy "${CAIRO_VERSION_CONTENT}")
         SET(CAIRO_VERSION_MAJOR "${CMAKE_MATCH_1}")
@@ -78,4 +78,4 @@ IF (Cairo_FIND_VERSION)
 ENDIF ()
 
 INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(Cairo DEFAULT_MSG CAIRO_INCLUDE_DIRS CAIRO_LIBRARIES VERSION_OK)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(Cairo DEFAULT_MSG CAIRO_INCLUDE_DIR CAIRO_LIBRARY VERSION_OK)
