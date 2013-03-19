@@ -22,6 +22,9 @@ endif(MapServer_IS_DEV_VERSION)
 MATH(EXPR MapServer_VERSION_NUM "${MapServer_VERSION_MAJOR}*10000+${MapServer_VERSION_MINOR}*100+${MapServer_VERSION_REVISION}")
 
 SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+if (APPLE)
+  set(CMAKE_FIND_FRAMEWORK "LAST")
+endif (APPLE)
 
 macro( report_optional_not_found component )
   message(SEND_ERROR "${component} library/component/dependency could not be found.
@@ -518,6 +521,10 @@ if(WITH_PHP)
    add_subdirectory("mapscript/php")
    set(USE_PHP_MAPSCRIPT 1)
 endif(WITH_PHP)
+
+if(UNIX)
+target_link_libraries(mapserver ${CMAKE_DL_LIBS} m )
+endif(UNIX)
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/mapserver-config.h.in"
