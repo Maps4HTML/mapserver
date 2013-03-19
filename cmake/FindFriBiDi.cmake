@@ -1,46 +1,30 @@
-# - Find the native FriBiDI includes and library
+# - Find Fribidi
+# Find the Fribidi includes and libraries
 #
-# This module defines
-#  FRIBIDI_INCLUDE_DIR, where to find fribidi.h, etc.
-#  FRIBIDI_LIBRARIES, the libraries to link against to use FriBiDi.
-#  FRIBIDI_FOUND, If false, do not try to use fribidi.
-# also defined, but not for general use are
-#  FRIBIDI_LIBRARY, where to find the FriBiDi library.
+# Following variables are provided:
+# FRIBIDI_FOUND
+#     True if Fribidi has been found
+# FRIBIDI_INCLUDE_DIR
+#     The include directories of Fribidi
+# FRIBIDI_LIBRARY
+#     Fribidi library list
 
-include(CheckFunctionExists)
-SET(FRIBIDI_FOUND "NO")
+find_package(PkgConfig)
+pkg_check_modules(PC_FRIBIDI QUIET fribidi>=0.19.0)
 
-FIND_PATH(FRIBIDI_INCLUDE_DIR fribidi/fribidi.h
-  /usr/local/include
-  /usr/include
-  )
+find_path(FRIBIDI_INCLUDE_DIR
+   NAMES fribidi.h
+   HINTS ${PC_FRIBIDI_INCLUDE_DIR} ${PC_FRIBIDI_INCLUDE_DIRS}
+   PATH_SUFFIXES fribidi
+)
 
-SET(FRIBIDI_NAMES ${FRIBIDI_NAMES} fribidi libfribidi)
-FIND_LIBRARY(FRIBIDI_LIBRARY
-  NAMES ${FRIBIDI_NAMES}
-  PATHS /usr/lib /usr/local/lib
-  )
+find_library(FRIBIDI_LIBRARY
+   NAME fribidi
+   HINTS ${PC_FRIBIDI_LIBDIR} ${PC_FRIBIDI_LIBRARY_DIRS}
+)
 
-IF (FRIBIDI_LIBRARY AND FRIBIDI_INCLUDE_DIR)
-  SET(CMAKE_REQUIRED_INCLUDES ${FRIBIDI_INCLUDE_DIR})
-  SET(CMAKE_REQUIRED_LIBRARIES ${FRIBIDI_LIBRARY})
-  CHECK_FUNCTION_EXISTS(fribidi_utf8_to_unicode FOUND_fribidi_utf8_to_unicode)
-  IF(FOUND_fribidi_utf8_to_unicode)
-    SET(FRIBIDI_LIBRARIES ${FRIBIDI_LIBRARY})
-    SET(FRIBIDI_FOUND 1)
-  ELSE(FOUND_fribidi_utf8_to_unicode)
-    SET(FRIBIDI_LIBRARIES ${FRIBIDI_LIBRARY})
-    SET(FRIBIDI_FOUND 1)
-    SET(FRIBIDI_LEGACY 1)
-  ENDIF(FOUND_fribidi_utf8_to_unicode)
-ENDIF (FRIBIDI_LIBRARY AND FRIBIDI_INCLUDE_DIR)
-
-IF (FRIBIDI_FOUND)
-  IF (NOT FRIBIDI_FIND_QUIETLY)
-    MESSAGE(STATUS "Found FriBiDi: ${FRIBIDI_LIBRARY}")
-  ENDIF (NOT FRIBIDI_FIND_QUIETLY)
-ELSE (FRIBIDI_FOUND)
-  IF (FRIBIDI_FIND_REQUIRED)
-    MESSAGE(FATAL_ERROR "Could not find FriBiDi library")
-  ENDIF (FRIBIDI_FIND_REQUIRED)
-ENDIF (FRIBIDI_FOUND)
+set(FRIBIDI_INCLUDE_DIRS ${FRIBIDI_INCLUDE_DIR})
+set(FRIBIDI_LIBRARIES ${FRIBIDI_LIBRARY})
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(FRIBIDI DEFAULT_MSG FRIBIDI_LIBRARY FRIBIDI_INCLUDE_DIR)
+mark_as_advanced(FRIBIDI_LIBRARY FRIBIDI_INCLUDE_DIR)
