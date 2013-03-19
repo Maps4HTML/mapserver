@@ -24,18 +24,18 @@ MATH(EXPR MapServer_VERSION_NUM "${MapServer_VERSION_MAJOR}*10000+${MapServer_VE
 SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
 macro( report_optional_not_found component )
-  message(FATAL_ERROR "${component} library/component/dependency could not be found.
+  message(SEND_ERROR "${component} library/component/dependency could not be found.
   HINTS:
   - disable ${component} support by adding -DWITH_${component}=0
   - add the ${component} install directory to the CMAKE_PREFIX_PATH variable (-DCMAKE_PREFIX_PATH=\"/path/to/${component}-install-dir;/path/to/other/dirs\"")
 endmacro()
 macro( report_mandatory_not_found component )
-  message(FATAL_ERROR "${component} library/component could not be found and is a mandatory dependency
+  message(SEND_ERROR "${component} library/component could not be found and is a mandatory dependency
   HINT:
   - add the ${component} install directory to the CMAKE_PREFIX_PATH variable (-DCMAKE_PREFIX_PATH=\"/path/to/${component}-install-dir;/path/to/other/dirs\"")
 endmacro()
 macro( report_dependency_error component dependency)
-  message(FATAL_ERROR "${component} support requires ${dependency} support, however ${dependency} support has been disabled.
+  message(SEND_ERROR "${component} support requires ${dependency} support, however ${dependency} support has been disabled.
   HINTS:
   - re-run with -DWITH_${dependency}=1 (or without -DWITH_${dependency}=0)
   - disable ${component} support by adding -DWITH_${component}=0"
@@ -261,7 +261,7 @@ endif (WITH_MYSQL)
 
 if(WITH_ORACLESPATIAL)
   if(NOT DEFINED ENV{ORACLE_HOME})
-    MESSAGE( FATAL_ERROR "ORACLE_HOME environment variable not set, needed for detection")
+    MESSAGE( SEND_ERROR "ORACLE_HOME environment variable not set, needed for detection")
   endif()
   find_package(Oracle)
   if(ORACLE_FOUND)
@@ -344,6 +344,7 @@ if(WITH_OGR)
       target_link_libraries(mapserver ${GDAL_LIBRARY})
       set (USE_OGR 1)
     else(GDAL_FOUND)
+      #TODO:message here could be more precise: we need the GDAL library but we don't need to force gdal support
       report_dependency_error(GDAL OGR)
     endif(GDAL_FOUND)
   endif(GDAL_FOUND)
@@ -460,7 +461,6 @@ if(WITH_THREADS)
   if (THREADS_FOUND)
     target_link_libraries (mapserver ${CMAKE_THREAD_LIBS_INIT})
     set(USE_THREAD 1)
-    message(STATUS "...thread safety support requested, added...")
   endif (THREADS_FOUND)
 endif(WITH_THREADS)
 
@@ -479,7 +479,7 @@ if(WITH_XMLMAPFILE)
     target_link_libraries(mapserver ${LIBXSLT_LIBRARY} ${LIBXSLT_EXSLT_LIBRARY})
     set(USE_XMLMAPFILE 1)
   else(LIBXSLT_FOUND)
-    message(FATAL_ERROR "Xml Mapfile support requires XSLT support which was not found.
+    message(SEND_ERROR "Xml Mapfile support requires XSLT support which was not found.
     HINTS:
     - add the libxslt install directory to the CMAKE_PREFIX_PATH variable (-DCMAKE_PREFIX_PATH=\"/path/to/libxslt-install-dir;/path/to/other/dirs\"
     - disable Xml Mapfile support by adding -DWITH_XMLMAPFILE=0"
