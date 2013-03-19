@@ -83,6 +83,20 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 SET(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_LINK_INTERFACE_LIBRARY "")
 
+set(agg_SOURCES
+renderers/agg/src/agg_arc.cpp
+renderers/agg/src/agg_vcgen_dash.cpp
+renderers/agg/src/agg_vcgen_contour.cpp
+renderers/agg/src/agg_curves.cpp
+renderers/agg/src/agg_embedded_raster_fonts.cpp
+renderers/agg/src/agg_trans_affine.cpp
+renderers/agg/src/agg_vcgen_stroke.cpp
+renderers/agg/src/agg_font_freetype.cpp
+renderers/agg/src/agg_line_aa_basics.cpp
+renderers/agg/src/clipper.cpp
+)
+include_directories(renderers/agg/include)
+
 add_library(mapserver SHARED
 cgiutil.c mapgeos.c maporaclespatial.c mapsearch.c mapwms.c classobject.c
 mapgml.c mapoutput.c mapwmslayer.c layerobject.c mapgraticule.c mapows.c
@@ -100,7 +114,7 @@ mapogcfiltercommon.c maprendering.c mapwcs20.c mapgd.c mapogcsld.c
 mapresample.c mapwfs.c mapgdal.c mapogcsos.c mapscale.c mapwfs11.c
 mapgeomtransform.c mapogroutput.c mapsde.c mapwfslayer.c mapagg.cpp mapkml.cpp
 mapgeomutil.cpp mapkmlrenderer.cpp
-mapogr.cpp mapserver-api.c)
+mapogr.cpp mapserver-api.c ${agg_SOURCES})
 
 add_executable(mapserv mapserv.c)
 target_link_libraries(mapserv mapserver)
@@ -168,8 +182,6 @@ endif(!FREETYPE_FOUND)
 include_directories(${FREETYPE_INCLUDE_DIR})
 target_link_libraries(mapserver ${FREETYPE_LIBRARY})
 
-add_subdirectory("${PROJECT_SOURCE_DIR}/renderers/agg/")
-target_link_libraries(mapserver agg)
 
 if(WITH_PROJ)
   find_package(Proj)
