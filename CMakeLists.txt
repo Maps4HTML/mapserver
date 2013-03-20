@@ -124,6 +124,15 @@ target_link_libraries(mapserv mapserver)
 add_executable(shp2img shp2img.c)
 target_link_libraries(shp2img mapserver)
 
+LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+IF(isSystemDir STREQUAL "-1")
+  set_target_properties(mapserv shp2img PROPERTIES
+        INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+  set_target_properties(mapserver PROPERTIES
+           INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+  MESSAGE(STATUS "CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib")
+ENDIF(isSystemDir STREQUAL "-1")
+
 #options suported by the cmake builder
 option(WITH_PROJ "Choose if reprojection support should be built in" ON)
 option(WITH_KML "Enable native KML output support (requires libxml2 support)" OFF)
@@ -618,14 +627,6 @@ set(USE_GENERIC_MS_NINT 1)
 endif(WIN32)
 
 
-LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
-IF(isSystemDir STREQUAL "-1")
-  set_target_properties(mapserver PROPERTIES
-        INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-  set_target_properties(mapserver PROPERTIES
-           INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-  MESSAGE(STATUS "CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib")
-ENDIF(isSystemDir STREQUAL "-1")
 
 
 
