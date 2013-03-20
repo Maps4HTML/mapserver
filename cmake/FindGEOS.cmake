@@ -11,10 +11,11 @@
 # Note: Version < 3.3.0 do not have geos.h in the geos sub directory; hence,
 # the check for both "geos/geos.h" and "geos.h".
 #---
-find_path( GEOS_INCLUDE_DIR geos/geos.h geos.h
+find_path( GEOS_INCLUDE_DIR geos_c.h
            PATHS 
            /usr/include
-           /usr/local/include )
+           /usr/local/include
+           SUFFIXES geos)
 
 # Find GEOS C library:
 find_library( GEOS_LIBRARY NAMES geos_c 

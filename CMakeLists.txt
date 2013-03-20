@@ -26,6 +26,16 @@ if (APPLE)
   set(CMAKE_FIND_FRAMEWORK "LAST")
 endif (APPLE)
 
+if(UNIX)
+  set(CMAKE_SKIP_BUILD_RPATH FALSE)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+  LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+  IF(isSystemDir STREQUAL "-1")
+    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+  ENDIF(isSystemDir STREQUAL "-1")
+endif(UNIX)
+
 macro( report_optional_not_found component )
   message(SEND_ERROR "${component} library/component/dependency could not be found.
   HINTS:
@@ -80,7 +90,6 @@ endif(WITH_FLEX_BISON)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-SET(CMAKE_SKIP_BUILD_RPATH FALSE)
 set(CMAKE_LINK_INTERFACE_LIBRARY "")
 
 set(agg_SOURCES
@@ -615,7 +624,9 @@ set(USE_GENERIC_MS_NINT 1)
 endif(WIN32)
 
 
+
+
 INSTALL(FILES mapserver-api.h ${PROJECT_BINARY_DIR}/mapserver-version.h DESTINATION include)
 INSTALL(TARGETS mapserver DESTINATION lib)
-INSTALL(TARGETS shp2img mapserv DESTINATION bin)
+INSTALL(TARGETS shp2img mapserv RUNTIME DESTINATION bin)
 
