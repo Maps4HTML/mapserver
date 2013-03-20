@@ -26,10 +26,6 @@ if (APPLE)
   set(CMAKE_FIND_FRAMEWORK "LAST")
 endif (APPLE)
 
-set(CMAKE_SKIP_BUILD_RPATH FALSE)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
 macro( report_optional_not_found component )
   message(SEND_ERROR "${component} library/component/dependency could not be found.
   HINTS:
@@ -124,14 +120,6 @@ target_link_libraries(mapserv mapserver)
 add_executable(shp2img shp2img.c)
 target_link_libraries(shp2img mapserver)
 
-LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
-IF(isSystemDir STREQUAL "-1")
-  set_target_properties(mapserv shp2img PROPERTIES
-        INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-  set_target_properties(mapserver PROPERTIES
-           INSTALL_NAME_DIR "${CMAKE_INSTALL_PREFIX}/lib")
-  MESSAGE(STATUS "CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib")
-ENDIF(isSystemDir STREQUAL "-1")
 
 #options suported by the cmake builder
 option(WITH_PROJ "Choose if reprojection support should be built in" ON)
@@ -625,10 +613,6 @@ if(WIN32)
 set(REGEX_MALLOC 1)
 set(USE_GENERIC_MS_NINT 1)
 endif(WIN32)
-
-
-
-
 
 INSTALL(FILES mapserver-api.h ${PROJECT_BINARY_DIR}/mapserver-version.h DESTINATION include)
 INSTALL(TARGETS shp2img mapserv mapserver RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
