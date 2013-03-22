@@ -5,6 +5,7 @@ FIND_PACKAGE(PerlLibs REQUIRED)
 INCLUDE_DIRECTORIES(${PERL_INCLUDE_PATH})
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/swiginc)
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/)
+add_definitions(${PERL_EXTRA_C_FLAGS})
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/perl)
 SWIG_ADD_MODULE(perlmapscript perl5 ../mapscript.i)
 
