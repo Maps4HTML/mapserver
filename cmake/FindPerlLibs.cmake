@@ -41,6 +41,38 @@
 include(FindPerl)
 
 if (PERL_EXECUTABLE)
+
+   if(NOT DEFINED PERL_VERSION_STRING)
+     ### PERL_VERSION
+     execute_process(
+       COMMAND
+         ${PERL_EXECUTABLE} -V:version
+         OUTPUT_VARIABLE
+           PERL_VERSION_OUTPUT_VARIABLE
+         RESULT_VARIABLE
+           PERL_VERSION_RESULT_VARIABLE
+         ERROR_QUIET
+         OUTPUT_STRIP_TRAILING_WHITESPACE
+     )
+     if(NOT PERL_VERSION_RESULT_VARIABLE AND NOT PERL_VERSION_OUTPUT_VARIABLE MATCHES "^version='UNKNOWN'")
+       string(REGEX REPLACE "version='([^']+)'.*" "\\1" PERL_VERSION_STRING ${PERL_VERSION_OUTPUT_VARIABLE})
+     else()
+       execute_process(
+         COMMAND ${PERL_EXECUTABLE} -v
+         OUTPUT_VARIABLE PERL_VERSION_OUTPUT_VARIABLE
+         RESULT_VARIABLE PERL_VERSION_RESULT_VARIABLE
+         ERROR_QUIET
+         OUTPUT_STRIP_TRAILING_WHITESPACE
+       )
+       if(NOT PERL_VERSION_RESULT_VARIABLE AND PERL_VERSION_OUTPUT_VARIABLE MATCHES "This is perl.*[ \\(]v([0-9\\._]+)[ \\)]")
+         string(REGEX REPLACE ".*This is perl.*[ \\(]v([0-9\\._]+)[ \\)].*" "\\1" PERL_VERSION_STRING ${PERL_VERSION_OUTPUT_VARIABLE})
+       elseif(NOT PERL_VERSION_RESULT_VARIABLE AND PERL_VERSION_OUTPUT_VARIABLE MATCHES "This is perl, version ([0-9\\._]+) +")
+         string(REGEX REPLACE ".*This is perl, version ([0-9\\._]+) +.*" "\\1" PERL_VERSION_STRING ${PERL_VERSION_OUTPUT_VARIABLE})
+       endif()
+     endif()
+   endif()
+
+
   ### PERL_PREFIX
   execute_process(
     COMMAND
@@ -243,8 +275,7 @@ endif ()
 # handle the QUIETLY and REQUIRED arguments and set PERLLIBS_FOUND to TRUE if
 # all listed variables are TRUE
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(PerlLibs REQUIRED_VARS PERL_LIBRARY PERL_INCLUDE_PATH
-                                           VERSION_VAR PERL_VERSION_STRING)
+find_package_handle_standard_args(PerlLibs REQUIRED_VARS PERL_LIBRARY PERL_INCLUDE_PATH)
 
 # Introduced after CMake 2.6.4 to bring module into compliance
 set(PERL_INCLUDE_DIR  ${PERL_INCLUDE_PATH})
