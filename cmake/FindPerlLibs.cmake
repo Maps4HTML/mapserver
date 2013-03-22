@@ -14,7 +14,7 @@
 #  The following variables are also available if needed
 #  (introduced after CMake 2.6.4)
 #
-#  PERL_SITESEARCH    = path to the sitesearch install dir
+#  PERL_SITEARCH      = path to the sitearch install dir
 #  PERL_SITELIB       = path to the sitelib install directory
 #  PERL_VENDORARCH    = path to the vendor arch install directory
 #  PERL_VENDORLIB     = path to the vendor lib install directory
@@ -83,18 +83,18 @@ if (PERL_EXECUTABLE)
     string(REGEX REPLACE "cppflags='([^']+)'.*" "\\1" PERL_EXTRA_C_FLAGS ${PERL_CPPFLAGS_OUTPUT_VARIABLE})
   endif ()
 
-  ### PERL_SITESEARCH
+  ### PERL_SITEARCH
   execute_process(
     COMMAND
-      ${PERL_EXECUTABLE} -V:installsitesearch
+      ${PERL_EXECUTABLE} -V:installsitearch
     OUTPUT_VARIABLE
-      PERL_SITESEARCH_OUTPUT_VARIABLE
+      PERL_SITEARCH_OUTPUT_VARIABLE
     RESULT_VARIABLE
-      PERL_SITESEARCH_RESULT_VARIABLE
+      PERL_SITEARCH_RESULT_VARIABLE
   )
-  if (NOT PERL_SITESEARCH_RESULT_VARIABLE)
-    string(REGEX REPLACE "install[a-z]+='([^']+)'.*" "\\1" PERL_SITESEARCH ${PERL_SITESEARCH_OUTPUT_VARIABLE})
-    file(TO_CMAKE_PATH "${PERL_SITESEARCH}" PERL_SITESEARCH)
+  if (NOT PERL_SITEARCH_RESULT_VARIABLE)
+    string(REGEX REPLACE "install[a-z]+='([^']+)'.*" "\\1" PERL_SITEARCH ${PERL_SITEARCH_OUTPUT_VARIABLE})
+    file(TO_CMAKE_PATH "${PERL_SITEARCH}" PERL_SITEARCH)
   endif ()
 
   ### PERL_SITELIB
@@ -168,36 +168,18 @@ if (PERL_EXECUTABLE)
   ### PERL_ARCHLIB
   execute_process(
     COMMAND
-      ${PERL_EXECUTABLE} -V:installarchlib
+      ${PERL_EXECUTABLE} -V:archlib
       OUTPUT_VARIABLE
         PERL_ARCHLIB_OUTPUT_VARIABLE
       RESULT_VARIABLE
         PERL_ARCHLIB_RESULT_VARIABLE
   )
   if (NOT PERL_ARCHLIB_RESULT_VARIABLE)
-    string(REGEX REPLACE "install[a-z]+='([^']+)'.*" "\\1" PERL_ARCHLIB ${PERL_ARCHLIB_OUTPUT_VARIABLE})
+    string(REGEX REPLACE "[a-z]+='([^']+)'.*" "\\1" PERL_ARCHLIB ${PERL_ARCHLIB_OUTPUT_VARIABLE})
     perl_adjust_darwin_lib_variable( ARCHLIB )
     file(TO_CMAKE_PATH "${PERL_ARCHLIB}" PERL_ARCHLIB)
   endif ()
   
-  if(APPLE)
-    ### PERL_ARCHLIB2 (see http://public.kitware.com/Bug/view.php?id=12544)
-    execute_process(
-      COMMAND
-        ${PERL_EXECUTABLE} -V:archlib
-        OUTPUT_VARIABLE
-          PERL_ARCHLIB2_OUTPUT_VARIABLE
-        RESULT_VARIABLE
-          PERL_ARCHLIB2_RESULT_VARIABLE
-    )
-    if (NOT PERL_ARCHLIB2_RESULT_VARIABLE)
-      string(REGEX REPLACE "archlib='([^']+)'.*" "\\1" PERL_ARCHLIB2 ${PERL_ARCHLIB2_OUTPUT_VARIABLE})
-      perl_adjust_darwin_lib_variable( ARCHLIB2 )
-      file(TO_CMAKE_PATH "${PERL_ARCHLIB2}" PERL_ARCHLIB2)
-      set(PERL_ARCHLIB ${PERL_ARCHLIB} ${PERL_ARCHLIB2})
-    endif ()
-  endif(APPLE)
-
   ### PERL_PRIVLIB
   execute_process(
     COMMAND
