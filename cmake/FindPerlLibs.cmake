@@ -241,10 +241,12 @@ if (PERL_EXECUTABLE)
       /usr/lib/perl/${PERL_VERSION_STRING}/CORE
   )
 
+
   ### PERL_LIBRARY
   find_library(PERL_LIBRARY
     NAMES
-      ${PERL_POSSIBLE_LIBRARY_NAMES}
+    ${PERL_POSSIBLE_LIBRARY_NAMES} perl perl${PERL_VERSION_STRING} perl_i perl${PERL_VERSION_STRING}_i
+
     PATHS
       ${PERL_ARCHLIB}/CORE
       /System/${PERL_ARCHLIB}/CORE
