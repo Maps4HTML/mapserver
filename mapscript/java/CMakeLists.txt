@@ -1,8 +1,13 @@
 FIND_PACKAGE(SWIG REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
-FIND_PACKAGE(JNI REQUIRED)
-FIND_PACKAGE(Java REQUIRED)
-INCLUDE_DIRECTORIES(${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
+
+FIND_PACKAGE(JNI)
+FIND_PACKAGE(Java)
+if(NOT JNI_INCLUDE_DIRS OR NOT Java_JAVAC_EXECUTABLE OR NOT Java_JAR_EXECUTABLE)
+   message(SEND_ERROR "Could not find required Java componenents. Try setting the JAVA_HOME environment variable (required on e.g. Ubuntu)")
+endif(NOT JNI_INCLUDE_DIRS OR NOT Java_JAVAC_EXECUTABLE OR NOT Java_JAR_EXECUTABLE)
+
+INCLUDE_DIRECTORIES(${JNI_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/swiginc)
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/)
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/java)
@@ -10,7 +15,7 @@ SET (CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/edu/umn/gis/mapscript")
 SET(CMAKE_SWIG_FLAGS -package edu.umn.gis.mapscript)
 SWIG_ADD_MODULE(javamapscript java ../mapscript.i)
 
-SWIG_LINK_LIBRARIES(javamapscript ${JAVA_LIBRARIES} mapserver)
+SWIG_LINK_LIBRARIES(javamapscript mapserver)
 
 ADD_CUSTOM_COMMAND(TARGET javamapscript
                       POST_BUILD
