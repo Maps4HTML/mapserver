@@ -18,11 +18,11 @@ SWIG_ADD_MODULE(javamapscript java ../mapscript.i)
 SWIG_LINK_LIBRARIES(javamapscript ${MAPSERVER_LIBMAPSERVER})
 
 ADD_CUSTOM_COMMAND(TARGET javamapscript
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
                       POST_BUILD
-                      COMMAND cmake -E echo "Compiling Java files..."
-                      COMMAND ${Java_JAVAC_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/edu/umn/gis/mapscript/*.java
-                      COMMAND cmake -E echo "Creating jar file..."
-                      COMMAND ${Java_JAR_EXECUTABLE} cvf mapscript.jar edu
+                      COMMAND ${Java_JAVAC_EXECUTABLE} edu/umn/gis/mapscript/*.java
+                      COMMAND ${Java_JAR_EXECUTABLE} cf mapscript.jar edu
+                      COMMENT "Compiling java source files, creating mapscript.jar"
                       )
 
 get_target_property(LOC_MAPSCRIPT_LIB ${SWIG_MODULE_javamapscript_REAL_NAME} LOCATION)
