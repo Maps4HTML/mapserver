@@ -11,7 +11,7 @@ SET(CMAKE_SWIG_FLAGS -shadow -w314)
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/perl)
 SWIG_ADD_MODULE(perlmapscript perl5 ../mapscript.i)
 
-SWIG_LINK_LIBRARIES(perlmapscript ${PERL_LIBRARIES} mapserver)
+SWIG_LINK_LIBRARIES(perlmapscript ${PERL_LIBRARIES} ${MAPSERVER_LIBMAPSERVER})
 set_target_properties(perlmapscript PROPERTIES OUTPUT_NAME mapscript)
 set_target_properties(perlmapscript PROPERTIES PREFIX "")
 if(APPLE)

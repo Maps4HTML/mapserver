@@ -21,7 +21,7 @@ add_library(php_mapscript MODULE
 )
 
 
-target_link_libraries(php_mapscript mapserver)
+target_link_libraries(php_mapscript ${MAPSERVER_LIBMAPSERVER})
 
 set_target_properties(php_mapscript PROPERTIES PREFIX "")
 install(TARGETS php_mapscript DESTINATION ${PHP5_EXTENSION_DIR})

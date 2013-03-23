@@ -7,7 +7,7 @@ include_directories(${PROJECT_SOURCE_DIR}/mapscript/)
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/ruby)
 SWIG_ADD_MODULE(rubymapscript ruby ../mapscript.i)
 
-SWIG_LINK_LIBRARIES(rubymapscript ${RUBY_LIBRARY} mapserver)
+SWIG_LINK_LIBRARIES(rubymapscript ${RUBY_LIBRARY} ${MAPSERVER_LIBMAPSERVER})
 
 #get_target_property(LOC_MAPSCRIPT_LIB ${SWIG_MODULE_mapscript_REAL_NAME} LOCATION)
 #set(mapscript_files ${LOC_MAPSCRIPT_LIB} ${CMAKE_CURRENT_BINARY_DIR}/mapscript.py)

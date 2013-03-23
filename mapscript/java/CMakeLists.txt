@@ -15,7 +15,7 @@ SET (CMAKE_SWIG_OUTDIR "${CMAKE_CURRENT_BINARY_DIR}/edu/umn/gis/mapscript")
 SET(CMAKE_SWIG_FLAGS -package edu.umn.gis.mapscript)
 SWIG_ADD_MODULE(javamapscript java ../mapscript.i)
 
-SWIG_LINK_LIBRARIES(javamapscript mapserver)
+SWIG_LINK_LIBRARIES(javamapscript ${MAPSERVER_LIBMAPSERVER})
 
 ADD_CUSTOM_COMMAND(TARGET javamapscript
                       POST_BUILD

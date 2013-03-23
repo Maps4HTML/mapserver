@@ -12,6 +12,8 @@ set (MapServer_VERSION_MAJOR 6)
 set (MapServer_VERSION_MINOR 3)
 set (MapServer_VERSION_REVISION 0)
 
+set(TARGET_VERSION_MAJOR ${MapServer_VERSION_MAJOR})
+set(TARGET_VERSION_MINOR ${MapServer_VERSION_MINOR})
 
 MATH(EXPR MapServer_IS_DEV_VERSION "1-${MapServer_VERSION_MINOR}%2")
 if(MapServer_IS_DEV_VERSION)
@@ -82,49 +84,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_LINK_INTERFACE_LIBRARY "")
 
-set(agg_SOURCES
-renderers/agg/src/agg_arc.cpp
-renderers/agg/src/agg_vcgen_dash.cpp
-renderers/agg/src/agg_vcgen_contour.cpp
-renderers/agg/src/agg_curves.cpp
-renderers/agg/src/agg_embedded_raster_fonts.cpp
-renderers/agg/src/agg_trans_affine.cpp
-renderers/agg/src/agg_vcgen_stroke.cpp
-renderers/agg/src/agg_font_freetype.cpp
-renderers/agg/src/agg_line_aa_basics.cpp
-renderers/agg/src/clipper.cpp
-)
-include_directories(renderers/agg/include)
-
-add_library(mapserver SHARED
-cgiutil.c mapgeos.c maporaclespatial.c mapsearch.c mapwms.c classobject.c
-mapgml.c mapoutput.c mapwmslayer.c layerobject.c mapgraticule.c mapows.c
-mapservutil.c mapxbase.c maphash.c mapowscommon.c mapshape.c mapxml.c mapbits.c
-maphttp.c mapparser.c mapstring.c mapxmp.c mapcairo.c mapimageio.c
-mappluginlayer.c mapsymbol.c mapchart.c mapimagemap.c mappool.c maptclutf.c
-mapcluster.c mapio.c mappostgis.c maptemplate.c mapcontext.c mapjoin.c
-mappostgresql.c mapthread.c mapcopy.c maplabel.c mapprimitive.c maptile.c
-mapcpl.c maplayer.c mapproject.c maptime.c mapcrypto.c maplegend.c
-mapprojhack.c maptree.c mapdebug.c maplexer.c mapquantization.c mapunion.c
-mapdraw.c maplibxml2.c mapquery.c maputil.c strptime.c mapdrawgdal.c
-mapraster.c mapuvraster.c mapdummyrenderer.c mapobject.c maprasterquery.c
-mapwcs.c maperror.c mapogcfilter.c mapregex.c mapwcs11.c mapfile.c
-mapogcfiltercommon.c maprendering.c mapwcs20.c mapgd.c mapogcsld.c
-mapresample.c mapwfs.c mapgdal.c mapogcsos.c mapscale.c mapwfs11.c
-mapgeomtransform.c mapogroutput.c mapsde.c mapwfslayer.c mapagg.cpp mapkml.cpp
-mapgeomutil.cpp mapkmlrenderer.cpp
-mapogr.cpp mapserver-api.c ${agg_SOURCES})
-
-set_target_properties( mapserver  PROPERTIES
-  VERSION ${MapServer_VERSION_STRING}
-  SOVERSION 1
-) 
-add_executable(mapserv mapserv.c)
-target_link_libraries(mapserv mapserver)
-add_executable(shp2img shp2img.c)
-target_link_libraries(shp2img mapserver)
-
-
 #options suported by the cmake builder
 option(WITH_PROJ "Choose if reprojection support should be built in" ON)
 option(WITH_KML "Enable native KML output support (requires libxml2 support)" OFF)
@@ -160,14 +119,86 @@ endif()
 option(WITH_EXEMPI "include xmp output metadata support" OFF)
 option(WITH_XMLMAPFILE "include native xml mapfile support (requires libxslt/libexslt)" OFF)
 
+option(BUILD_STATIC "Also build a static version of mapserver" OFF)
+option(LINK_STATIC_LIBMAPSERVER "Link to static version of libmapserver (also for mapscripts)" OFF)
 option(WITH_FLEX_BISON "Regenerate parser" OFF)
 
 #TODO: USE_OGL? , USE_SDE, USE_CLUSTER_EXTERNAL USE_CLUSTER_PLUGIN, USE_MSSQL2008, USE_MSSQL2008_PLUGIN
+
+if(LINK_STATIC_LIBMAPSERVER)
+  set(BUILD_STATIC 1)
+  set(MAPSERVER_LIBMAPSERVER mapserver_static)
+else(LINK_STATIC_LIBMAPSERVER)
+  set(MAPSERVER_LIBMAPSERVER mapserver)
+endif(LINK_STATIC_LIBMAPSERVER)
+
+set(agg_SOURCES
+renderers/agg/src/agg_arc.cpp
+renderers/agg/src/agg_vcgen_dash.cpp
+renderers/agg/src/agg_vcgen_contour.cpp
+renderers/agg/src/agg_curves.cpp
+renderers/agg/src/agg_embedded_raster_fonts.cpp
+renderers/agg/src/agg_trans_affine.cpp
+renderers/agg/src/agg_vcgen_stroke.cpp
+renderers/agg/src/agg_font_freetype.cpp
+renderers/agg/src/agg_line_aa_basics.cpp
+renderers/agg/src/clipper.cpp
+)
+include_directories(renderers/agg/include)
+
+set(mapserver_SOURCES
+cgiutil.c mapgeos.c maporaclespatial.c mapsearch.c mapwms.c classobject.c
+mapgml.c mapoutput.c mapwmslayer.c layerobject.c mapgraticule.c mapows.c
+mapservutil.c mapxbase.c maphash.c mapowscommon.c mapshape.c mapxml.c mapbits.c
+maphttp.c mapparser.c mapstring.c mapxmp.c mapcairo.c mapimageio.c
+mappluginlayer.c mapsymbol.c mapchart.c mapimagemap.c mappool.c maptclutf.c
+mapcluster.c mapio.c mappostgis.c maptemplate.c mapcontext.c mapjoin.c
+mappostgresql.c mapthread.c mapcopy.c maplabel.c mapprimitive.c maptile.c
+mapcpl.c maplayer.c mapproject.c maptime.c mapcrypto.c maplegend.c
+mapprojhack.c maptree.c mapdebug.c maplexer.c mapquantization.c mapunion.c
+mapdraw.c maplibxml2.c mapquery.c maputil.c strptime.c mapdrawgdal.c
+mapraster.c mapuvraster.c mapdummyrenderer.c mapobject.c maprasterquery.c
+mapwcs.c maperror.c mapogcfilter.c mapregex.c mapwcs11.c mapfile.c
+mapogcfiltercommon.c maprendering.c mapwcs20.c mapgd.c mapogcsld.c
+mapresample.c mapwfs.c mapgdal.c mapogcsos.c mapscale.c mapwfs11.c
+mapgeomtransform.c mapogroutput.c mapsde.c mapwfslayer.c mapagg.cpp mapkml.cpp
+mapgeomutil.cpp mapkmlrenderer.cpp
+mapogr.cpp mapserver-api.c )
+
+add_library(mapserver SHARED ${mapserver_SOURCES} ${agg_SOURCES})
+set_target_properties( mapserver  PROPERTIES
+  VERSION ${MapServer_VERSION_STRING}
+  SOVERSION 1
+) 
+if(BUILD_STATIC)
+   add_library(mapserver_static STATIC ${mapserver_SOURCES} ${agg_SOURCES})
+  set_target_properties( mapserver_static PROPERTIES
+    VERSION ${MapServer_VERSION_STRING}
+    SOVERSION 1
+  ) 
+endif(BUILD_STATIC)
+
+#SOVERSION is not necessarily the same as the
+#major version. The rule is that any breakage of the ABI must be
+#indicated by incrementing the SOVERSION. So, adding e.g. functions is no
+#problem, modifying argument lists or removing functions would required
+#the SOVERSION to be incremented. Similar rules hold of course for
+#non-opaque data-structures.
+
+add_executable(mapserv mapserv.c)
+target_link_libraries(mapserv ${MAPSERVER_LIBMAPSERVER})
+add_executable(shp2img shp2img.c)
+target_link_libraries(shp2img ${MAPSERVER_LIBMAPSERVER})
+
+
 
 find_package(PNG)
 if(PNG_FOUND)
   include_directories(${PNG_INCLUDE_DIR})
   target_link_libraries(mapserver ${PNG_LIBRARY})
+  if(BUILD_STATIC)
+  target_link_libraries(mapserver_static ${PNG_LIBRARY})
+  endif(BUILD_STATIC)
   set(USE_PNG 1)
 else(PNG_FOUND)
   report_mandatory_not_found(PNG)
@@ -177,6 +208,9 @@ find_package(JPEG)
 if(JPEG_FOUND)
   include_directories(${JPEG_INCLUDE_DIR})
   target_link_libraries(mapserver ${JPEG_LIBRARY})
+  if(BUILD_STATIC)
+  target_link_libraries(mapserver_static ${JPEG_LIBRARY})
+  endif(BUILD_STATIC)
   set(USE_JPEG 1)
 else(JPEG_FOUND)
   report_mandatory_not_found(JPEG)
@@ -188,6 +222,9 @@ if( !FREETYPE_FOUND)
 endif(!FREETYPE_FOUND)
 include_directories(${FREETYPE_INCLUDE_DIR})
 target_link_libraries(mapserver ${FREETYPE_LIBRARY})
+  if(BUILD_STATIC)
+target_link_libraries(mapserver_static ${FREETYPE_LIBRARY})
+  endif(BUILD_STATIC)
 
 
 if(WITH_PROJ)
@@ -197,6 +234,9 @@ if(WITH_PROJ)
   else(!PROJ_FOUND)
     include_directories(${PROJ_INCLUDE_DIR})
     target_link_libraries(mapserver ${PROJ_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${PROJ_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_PROJ 1)
   endif(!PROJ_FOUND)
 endif (WITH_PROJ)
@@ -217,6 +257,9 @@ if(WITH_GD)
   else(!GD_FOUND)
     include_directories(${GD_INCLUDE_DIR})
     target_link_libraries(mapserver ${GD_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${GD_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_GD 1)
     if(GD_SUPPORTS_PNG)
       set(USE_GD_PNG 1)
@@ -240,6 +283,9 @@ if(WITH_FRIBIDI)
   else(!FRIBIDI_FOUND)
     include_directories(${FRIBIDI_INCLUDE_DIR})
     target_link_libraries(mapserver ${FRIBIDI_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${FRIBIDI_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_FRIBIDI 1)
     if(FRIBIDI_LEGACY)
       message(WARNING "Old Fribidi found, upgrade recommended")
@@ -252,6 +298,9 @@ if(WITH_ICONV)
   if(ICONV_FOUND)
     include_directories(${ICONV_INCLUDE_DIR})
     target_link_libraries(mapserver ${ICONV_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${ICONV_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_ICONV 1)
   else(ICONV_FOUND)
     report_optional_not_found(ICONV)
@@ -264,6 +313,9 @@ if(WITH_CAIRO)
   if(CAIRO_FOUND)
     include_directories(${CAIRO_INCLUDE_DIR})
     target_link_libraries(mapserver ${CAIRO_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${CAIRO_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_CAIRO 1)
   else(CAIRO_FOUND)
     report_optional_not_found(CAIRO)
@@ -275,6 +327,9 @@ if(WITH_MYSQL)
   if(MYSQL_FOUND)
     include_directories(${MYSQL_INCLUDE_DIR})
     target_link_libraries(mapserver ${MYSQL_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${MYSQL_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_MYSQL 1)
   else(MYSQL_FOUND)
     report_optional_not_found(MYSQL)
@@ -289,6 +344,9 @@ if(WITH_ORACLESPATIAL)
   if(ORACLE_FOUND)
     include_directories(${ORACLE_INCLUDE_DIR})
     target_link_libraries(mapserver ${ORACLE_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${ORACLE_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_ORACLESPATIAL 1)
   else(ORACLE_FOUND)
     report_optional_not_found(ORACLESPATIAL)
@@ -321,6 +379,9 @@ if(WITH_GEOS)
   if(GEOS_FOUND)
     include_directories(${GEOS_INCLUDE_DIR})
     target_link_libraries(mapserver ${GEOS_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${GEOS_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_GEOS 1)
   else(GEOS_FOUND)
     report_optional_not_found(GEOS)
@@ -339,6 +400,9 @@ if(WITH_POSTGIS)
     endif()
     include_directories(${POSTGRESQL_INCLUDE_DIR})
     target_link_libraries(mapserver ${POSTGRESQL_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${POSTGRESQL_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_POSTGIS 1)
   else(POSTGRESQL_FOUND)
     report_optional_not_found(POSTGIS)
@@ -350,6 +414,9 @@ if(WITH_GDAL)
   if(GDAL_FOUND)
     include_directories(${GDAL_INCLUDE_DIR})
     target_link_libraries(mapserver ${GDAL_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${GDAL_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_GDAL 1)
   else(GDAL_FOUND)
     report_optional_not_found(GDAL)
@@ -364,6 +431,9 @@ if(WITH_OGR)
     if(GDAL_FOUND)
       include_directories(${GDAL_INCLUDE_DIR})
       target_link_libraries(mapserver ${GDAL_LIBRARY})
+  if(BUILD_STATIC)
+      target_link_libraries(mapserver_static ${GDAL_LIBRARY})
+  endif(BUILD_STATIC)
       set (USE_OGR 1)
     else(GDAL_FOUND)
       message(SEND_ERROR "GDAL library could not be found and is needed for OGR support.
@@ -379,6 +449,9 @@ if((WITH_CLIENT_WMS) OR (WITH_CLIENT_WFS))
    if(CURL_FOUND)
      include_directories(${CURL_INCLUDE_DIR})
      target_link_libraries(mapserver ${CURL_LIBRARY})
+  if(BUILD_STATIC)
+     target_link_libraries(mapserver_static ${CURL_LIBRARY})
+  endif(BUILD_STATIC)
      set(USE_CURL 1)
    else(CURL_FOUND)
       if(WITH_CLIENT_WFS)
@@ -441,6 +514,9 @@ if(WITH_LIBXML2)
       set(LIBXML2_LIBRARY ${LIBXML2_LIBRARIES})
     endif()
     target_link_libraries(mapserver ${LIBXML2_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${LIBXML2_LIBRARY})
+  endif(BUILD_STATIC)
     set (USE_LIBXML2 1)
   else(LIBXML2_FOUND)
     report_optional_not_found(LIBXML2)
@@ -484,6 +560,9 @@ if(WITH_THREADS)
   find_package(Threads)
   if (THREADS_FOUND)
     target_link_libraries (mapserver ${CMAKE_THREAD_LIBS_INIT})
+  if(BUILD_STATIC)
+    target_link_libraries (mapserver_static ${CMAKE_THREAD_LIBS_INIT})
+  endif(BUILD_STATIC)
     set(USE_THREAD 1)
   endif (THREADS_FOUND)
 endif(WITH_THREADS)
@@ -501,6 +580,9 @@ if(WITH_XMLMAPFILE)
     endif()
     include_directories(${LIBXSLT_INCLUDE_DIR})
     target_link_libraries(mapserver ${LIBXSLT_LIBRARY} ${LIBXSLT_EXSLT_LIBRARY})
+  if(BUILD_STATIC)
+      set(LIBXSLT_LIBRARY ${LIBXSLT_LIBRARIES})
+  endif(BUILD_STATIC)
     set(USE_XMLMAPFILE 1)
   else(LIBXSLT_FOUND)
     message(SEND_ERROR "Xml Mapfile support requires XSLT support which was not found.
@@ -516,6 +598,9 @@ if(WITH_GIF)
   if(GIF_FOUND)
     include_directories(${GIF_INCLUDE_DIR})
     target_link_libraries(mapserver ${GIF_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${GIF_LIBRARY})
+  endif(BUILD_STATIC)
     set(USE_GIF 1)
   else(GIF_FOUND)
     report_optional_not_found(GIF)
@@ -527,6 +612,9 @@ if(WITH_EXEMPI)
   if(LIBEXEMPI_FOUND)
     include_directories(${LIBEXEMPI_INCLUDE_DIR})
     target_link_libraries(mapserver ${LIBEXEMPI_LIBRARY})
+  if(BUILD_STATIC)
+    target_link_libraries(mapserver_static ${LIBEXEMPI_LIBRARY})
+  endif(BUILD_STATIC)
     set(USE_EXEMPI 1)
   else(LIBEXEMPI_FOUND)
     report_optional_not_found(EXEMPI)
@@ -560,6 +648,9 @@ endif(WITH_JAVA)
 
 if(UNIX)
 target_link_libraries(mapserver ${CMAKE_DL_LIBS} m )
+  if(BUILD_STATIC)
+target_link_libraries(mapserver_static ${CMAKE_DL_LIBS} m )
+  endif(BUILD_STATIC)
 endif(UNIX)
 
 configure_file (
@@ -643,4 +734,7 @@ endif(WIN32)
 
 INSTALL(FILES mapserver-api.h ${PROJECT_BINARY_DIR}/mapserver-version.h DESTINATION include)
 INSTALL(TARGETS shp2img mapserv mapserver RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
+if(BUILD_STATIC)
+   INSTALL(TARGETS mapserver_static DESTINATION lib)
+endif(BUILD_STATIC)
 
