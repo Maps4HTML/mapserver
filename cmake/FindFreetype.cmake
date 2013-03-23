@@ -67,8 +67,9 @@ FIND_PATH(FREETYPE_INCLUDE_DIR_freetype2 freetype/config/ftheader.h
   PATH_SUFFIXES freetype2
 )
 
+set(FREETYPE_NAMES ${FREETYPE_NAMES} freetype libfreetype freetype219 freetype241MT_D)
 FIND_LIBRARY(FREETYPE_LIBRARY
-  NAMES freetype libfreetype freetype219 freetype241MT_D
+  NAMES ${FREETYPE_NAMES}
   HINTS
   $ENV{FREETYPE_DIR}
   PATH_SUFFIXES lib64 lib x86_64-linux-gnu i386-linux-gnu

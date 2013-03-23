@@ -25,11 +25,6 @@ ADD_CUSTOM_COMMAND(TARGET javamapscript
                       COMMAND ${Java_JAR_EXECUTABLE} cvf mapscript.jar edu
                       )
 
-#execute_process ( COMMAND ${PYTHON_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(True)" OUTPUT_VARIABLE PYTHON_SITE_PACKAGES OUTPUT_STRIP_TRAILING_WHITESPACE)
-#
-#get_target_property(LOC_MAPSCRIPT_LIB ${SWIG_MODULE_mapscript_REAL_NAME} LOCATION)
-#set(mapscript_files ${LOC_MAPSCRIPT_LIB} ${CMAKE_CURRENT_BINARY_DIR}/mapscript.py)
-#install(FILES ${mapscript_files} DESTINATION ${PYTHON_SITE_PACKAGES})
+get_target_property(LOC_MAPSCRIPT_LIB ${SWIG_MODULE_javamapscript_REAL_NAME} LOCATION)
+install(FILES ${LOC_MAPSCRIPT_LIB} DESTINATION lib)
 
-#install(FILES ${CMAKE_CURRENT_BINARY_DIR}/mapscript.py DESTINATION ${PYTHON_SITE_PACKAGES})
-#install(TARGETS mapscript DESTINATION ${PYTHON_SITE_PACKAGES})

@@ -115,6 +115,10 @@ mapgeomtransform.c mapogroutput.c mapsde.c mapwfslayer.c mapagg.cpp mapkml.cpp
 mapgeomutil.cpp mapkmlrenderer.cpp
 mapogr.cpp mapserver-api.c ${agg_SOURCES})
 
+set_target_properties( mapserver  PROPERTIES
+  VERSION ${MapServer_VERSION_STRING}
+  SOVERSION 1
+) 
 add_executable(mapserv mapserv.c)
 target_link_libraries(mapserv mapserver)
 add_executable(shp2img shp2img.c)
@@ -362,8 +366,10 @@ if(WITH_OGR)
       target_link_libraries(mapserver ${GDAL_LIBRARY})
       set (USE_OGR 1)
     else(GDAL_FOUND)
-      #TODO:message here could be more precise: we need the GDAL library but we don't need to force gdal support
-      report_dependency_error(GDAL OGR)
+      message(SEND_ERROR "GDAL library could not be found and is needed for OGR support.
+      HINTS:
+      - disable OGR support by adding -DWITH_OGR=0
+      - add the GDAL install directory to the CMAKE_PREFIX_PATH variable (-DCMAKE_PREFIX_PATH=\"/path/to/${component}-install-dir;/path/to/other/dirs\"")
     endif(GDAL_FOUND)
   endif(GDAL_FOUND)
 endif(WITH_OGR)
