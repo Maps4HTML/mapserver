@@ -122,6 +122,7 @@ option(WITH_XMLMAPFILE "include native xml mapfile support (requires libxslt/lib
 option(BUILD_STATIC "Also build a static version of mapserver" OFF)
 option(LINK_STATIC_LIBMAPSERVER "Link to static version of libmapserver (also for mapscripts)" OFF)
 option(WITH_FLEX_BISON "Regenerate parser" OFF)
+option(WITH_APACHE_MODULE "include (experimental) support for apache module" OFF)
 
 #TODO: USE_OGL? , USE_SDE, USE_CLUSTER_EXTERNAL USE_CLUSTER_PLUGIN, USE_MSSQL2008, USE_MSSQL2008_PLUGIN
 
@@ -631,6 +632,12 @@ if(WITH_PHP)
    set(USE_PHP_MAPSCRIPT 1)
 endif(WITH_PHP)
 
+if(WITH_APACHE_MODULE)
+   add_subdirectory("apache")
+   set(USE_APACHE_MODULE 1)
+endif(WITH_APACHE_MODULE)
+
+
 if(WITH_PERL)
    add_subdirectory("mapscript/perl")
    set(USE_PERL_MAPSCRIPT 1)
@@ -724,6 +731,7 @@ status_optional_feature("PHP" "${USE_PHP_MAPSCRIPT}")
 status_optional_feature("PERL" "${USE_PERL_MAPSCRIPT}")
 status_optional_feature("RUBY" "${USE_RUBY_MAPSCRIPT}")
 status_optional_feature("JAVA" "${USE_JAVA_MAPSCRIPT}")
+status_optional_feature("Apache Module (Experimental)" "${USE_APACHE_MODULE}")
 
 include_directories("${PROJECT_BINARY_DIR}")
 
