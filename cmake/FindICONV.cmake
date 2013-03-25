@@ -32,14 +32,13 @@ if (ICONV_INCLUDE_DIR)
   set(ICONV_FIND_QUIETLY TRUE)
 endif()
 
-find_path(ICONV_INCLUDE_DIR iconv.h
- /usr/include
- /usr/local/include)
+find_path(ICONV_INCLUDE_DIR iconv.h)
 
 set(POTENTIAL_ICONV_LIBS iconv libiconv libiconv2)
 
-find_library(ICONV_LIBRARY NAMES ${POTENTIAL_ICONV_LIBS}
-	PATHS /usr/lib /usr/local/lib)
+find_library(ICONV_LIBRARY
+   NAMES ${POTENTIAL_ICONV_LIBS}
+)
 
 if(WIN32)
 	set(ICONV_DLL_NAMES iconv.dll  libiconv.dll libiconv2.dll)
