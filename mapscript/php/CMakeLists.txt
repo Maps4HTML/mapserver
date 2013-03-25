@@ -4,10 +4,14 @@ INCLUDE_DIRECTORIES(${PHP5_INCLUDES})
 IF(APPLE)
   if(XCODE)
      SET(CMAKE_C_LINK_FLAGS 
-        "${CMAKE_C_LINK_FLAGS} -bundle_loader ${PHP5_EXECUTABLE}")
+        "${CMAKE_C_LINK_FLAGS} -undefined dynamic_lookup")
+     SET(CMAKE_CXX_LINK_FLAGS 
+        "${CMAKE_CXX_LINK_FLAGS} -undefined dynamic_lookup")
   else(XCODE)
-  SET(CMAKE_SHARED_MODULE_CREATE_C_FLAGS 
-     "${CMAKE_SHARED_MODULE_CREATE_C_FLAGS} -bundle_loader ${PHP5_EXECUTABLE}")
+     SET(CMAKE_SHARED_MODULE_CREATE_C_FLAGS 
+        "${CMAKE_SHARED_MODULE_CREATE_C_FLAGS} -undefined dynamic_lookup")
+     SET(CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS 
+        "${CMAKE_SHARED_MODULE_CREATE_CXX_FLAGS} -undefined dynamic_lookup")
   endif(XCODE)
 ENDIF(APPLE)
 
