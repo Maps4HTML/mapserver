@@ -6,9 +6,11 @@ INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/swiginc)
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/)
 include_directories(${PROJECT_SOURCE_DIR}/mapscript/python)
-SWIG_ADD_MODULE(mapscript python ../mapscript.i pygdioctx/pygdioctx.c)
+SWIG_ADD_MODULE(python_mapscript python ../mapscript.i pygdioctx/pygdioctx.c)
 
-SWIG_LINK_LIBRARIES(mapscript ${PYTHON_LIBRARIES} ${MAPSERVER_LIBMAPSERVER})
+SWIG_LINK_LIBRARIES(python_mapscript ${PYTHON_LIBRARIES} ${MAPSERVER_LIBMAPSERVER})
+
+set_target_properties(python_mapscript PROPERTIES OUTPUT_NAME mapscript)
 
 execute_process ( COMMAND ${PYTHON_EXECUTABLE} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(True)" OUTPUT_VARIABLE PYTHON_SITE_PACKAGES OUTPUT_STRIP_TRAILING_WHITESPACE)
 
