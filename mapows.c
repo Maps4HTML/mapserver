@@ -222,7 +222,8 @@ static int msOWSPreParseRequest(cgiRequestObj *request,
   if (ows_request->service == NULL
       && ows_request->request != NULL) {
     if (EQUAL(ows_request->request, "GetMap")
-        || EQUAL(ows_request->request, "GetFeatureInfo")) {
+        || EQUAL(ows_request->request, "GetFeatureInfo")
+        || EQUAL(ows_request->request, "GetMapML")) {
       ows_request->service = msStrdup("WMS");
     } else { /* service could not be determined */
       return MS_DONE;

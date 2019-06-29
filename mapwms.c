@@ -5190,6 +5190,15 @@ int msWMSDispatch(mapObj *map, cgiRequestObj *req, owsRequestObj *ows_request, i
       return msWMSException(map, nVersion, NULL, wms_exception_format);
     /* Request completed */
     return MS_SUCCESS;
+  } else if (request && strcasecmp(request, "GetMapML") == 0 ) {
+    /* Return a MapML document for specified LAYER and PROJECTION
+     * This is not a standard WMS request, but it fits nicely here for now.
+     */
+    msOWSRequestLayersEnabled(map, "MO", request, ows_request);
+    if ( msWriteMapMLLayer(stdout, map, req, ows_request) != MS_SUCCESS )
+      return msWMSException(map, nVersion, NULL, wms_exception_format);
+    /* Request completed */
+    return MS_SUCCESS;
   } else if (request && strcasecmp(request, "GetMap") == 0 &&
              format && strcasecmp(format,  "image/txt") == 0) {
     /* Until someone adds full support for ASCII graphics this should do. ;) */

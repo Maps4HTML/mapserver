@@ -124,6 +124,7 @@ option(WITH_PROTOBUFC "Choose if protocol buffers support should be built in (re
 option(WITH_KML "Enable native KML output support (requires libxml2 support)" OFF)
 option(WITH_SOS "Enable SOS Server support (requires PROJ and libxml2 support)" OFF)
 option(WITH_WMS "Enable WMS Server support (requires proj support)" ON)
+option(WITH_MAPML "Enable MapML output support (requires PROJ and WMS support)" OFF)
 option(WITH_FRIBIDI "Choose if FriBidi glyph shaping support should be built in (usefull for right-to-left languages) (requires HARFBUZZ)" ON)
 option(WITH_HARFBUZZ "Choose if Harfbuzz complex text layout should be included (needed for e.g. arabic and hindi) (requires FRIBIDI)" ON)
 option(WITH_ICONV "Choose if Iconv Internationalization support should be built in" ON)
@@ -268,7 +269,7 @@ mapresample.c mapwfs.c mapgdal.c mapogcsos.c mapscale.c mapwfs11.c mapwfs20.c
 mapgeomtransform.c mapogroutput.c mapwfslayer.c mapagg.cpp mapkml.cpp
 mapgeomutil.cpp mapkmlrenderer.cpp fontcache.c textlayout.c maputfgrid.cpp
 mapogr.cpp mapcontour.c mapsmoothing.c mapv8.cpp ${REGEX_SOURCES} kerneldensity.c 
-mapcompositingfilter.c mapmvt.c)
+mapcompositingfilter.c mapmvt.c mapml.c)
 
 set(mapserver_HEADERS
 cgiutil.h dejavu-sans-condensed.h dxfcolor.h fontcache.h hittest.h mapagg.h
@@ -425,6 +426,14 @@ if(WITH_WMS)
     report_dependency_error(WMS PROJ)
   endif(USE_PROJ)
 endif(WITH_WMS)
+
+if(WITH_MAPML)
+  if(USE_WMS_SVR)
+    set(USE_MAPML 1)
+  else(USE_WMS_SVR)
+    report_dependency_error(MAPML WMS)
+  endif(USE_WMS_SVR)
+endif(WITH_MAPML)
 
 if(WITH_FRIBIDI)
   find_package(FriBiDi)
@@ -991,6 +1000,7 @@ status_optional_feature("Thread-safety support" "${USE_THREAD}")
 status_optional_feature("KML output" "${USE_KML}")
 status_optional_feature("Z+M point coordinate support" "${USE_POINT_Z_M}")
 status_optional_feature("XML Mapfile support" "${USE_XMLMAPFILE}")
+status_optional_feature("MapML Support" "${USE_MAPML}")
 
 message(STATUS " * Mapscripts")
 status_optional_feature("Python" "${USE_PYTHON_MAPSCRIPT}")

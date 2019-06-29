@@ -442,7 +442,7 @@ int msWMSDispatch(mapObj *map, cgiRequestObj *req, owsRequestObj *ows_request, i
 MS_DLL_EXPORT int msWMSLoadGetMapParams(mapObj *map, int nVersion,
                                         char **names, char **values, int numentries,
                                         char *wms_exception_format, const char *wms_request, owsRequestObj *ows_request);
-
+void msWMSPrepareNestedGroups(mapObj* map, int nVersion, char*** nestedGroups, int* numNestedGroups, int* isUsedInNestedGroup);
 
 /*====================================================================
  *   mapwmslayer.c
@@ -562,6 +562,12 @@ int msWCSDispatch(mapObj *map, cgiRequestObj *requestobj, owsRequestObj *ows_req
  *====================================================================*/
 
 int msSOSDispatch(mapObj *map, cgiRequestObj *requestobj, owsRequestObj *ows_request); /* only 1 public function */
+
+/*====================================================================
+ *   mapml.c
+ *====================================================================*/
+
+MS_DLL_EXPORT int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *ows_request);
 
 #ifdef __cplusplus
 } /* extern "C" */
