@@ -190,6 +190,8 @@ this request. Check wms/ows_enable_request settings.", "msGetMapMLLayer()");
     return MS_FAILURE;
   }
   
+  // TODO: Check that mapfile supports requested SRS
+
   /* We're good to go. Generate output for this layer */
   
   msIO_setHeader("Content-Type","text/mapml");
@@ -199,7 +201,12 @@ this request. Check wms/ows_enable_request settings.", "msGetMapMLLayer()");
   msIO_fprintf(fp, "<mapml>\n");
   msIO_fprintf(fp, "  <head>\n");
 
-  msOWSPrintEncodeMetadata(fp, &(lp->metadata), "MO", "title", OWS_WARN, "  <title>%s</title>\n", lp->name);
+  /* If LAYER name is the top-level map then return map title, otherwise return the first matching layer's title */
+  if (map->name && EQUAL(map->name, pszLayer))
+    msOWSPrintEncodeMetadata(fp, &(map->web.metadata), "MO", "title", OWS_WARN, "  <title>%s</title>\n", map->name);
+  else
+    msOWSPrintEncodeMetadata(fp, &(lp->metadata), "MO", "title", OWS_WARN, "  <title>%s</title>\n", lp->name);
+  
   //msIO_fprintf(fp, "  <base href=\"TODO-href\" />\n");
   msIO_fprintf(fp, "  <meta charset=\"utf-8\" />\n");
   msIO_fprintf(fp, "  <meta http-equiv=\"Content-Type\" content=\"text/mapml;projection=%s\" />\n", pszProjection);
@@ -223,6 +230,11 @@ this request. Check wms/ows_enable_request settings.", "msGetMapMLLayer()");
   // TODO: Set proper output format and transparency... special metadata?
   msIO_fprintf(fp, "      <link rel=\"image\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetMap&amp;FORMAT=image/png&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX={xmin},{ymin},{xmax},{ymax}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszCRS);
 
+  /* If layer is queryable then enable GetFeatureInfo */
+  // TODO Ceheck if queryable
+  msIO_fprintf(fp, "      <input name=\"i\" type=\"location\" axis=\"i\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
+  msIO_fprintf(fp, "      <input name=\"j\" type=\"location\" axis=\"j\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
+  msIO_fprintf(fp, "      <link rel=\"query\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetFeatureInfo&amp;INFO_FORMAT=text/plain&amp;FEATURE_COUNT=50&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;QUERY_LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX={xmin},{ymin},{xmax},{ymax}&amp;x={i}&amp;y={j}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszLayer, pszCRS);
 
   msIO_fprintf(fp, "    </extent>\n");
   msIO_fprintf(fp, "  </body>\n");
