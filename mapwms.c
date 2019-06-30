@@ -4379,6 +4379,11 @@ int msWMSFeatureInfo(mapObj *map, int nVersion, char **names, char **values, int
     msIO_sendHeaders();
     msGMLWriteQuery(map, NULL, "MGO"); /* default is stdout */
 
+  } else if (strcasecmp(info_format, "text/mapml") == 0) {
+
+    if (msWriteMapMLQuery(map, stdout, "MGO") != MS_SUCCESS)
+      return msWMSException(map, nVersion, NULL, wms_exception_format);
+
   } else {
     mapservObj *msObj;
 

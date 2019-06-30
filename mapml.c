@@ -249,9 +249,10 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
 
   /* If layer is queryable then enable GetFeatureInfo */
   // TODO Check if layer is queryable (also need to check top-level map, groups, nested groups)
+  // TODO: Check if wms_getfeatureinfo_formatlist includes text/mapml */
   msIO_fprintf(fp, "      <input name=\"i\" type=\"location\" axis=\"i\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
   msIO_fprintf(fp, "      <input name=\"j\" type=\"location\" axis=\"j\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
-  msIO_fprintf(fp, "      <link rel=\"query\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetFeatureInfo&amp;INFO_FORMAT=text/plain&amp;FEATURE_COUNT=50&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;QUERY_LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX={xmin},{ymin},{xmax},{ymax}&amp;x={i}&amp;y={j}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszLayer, pszCRS);
+  msIO_fprintf(fp, "      <link rel=\"query\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetFeatureInfo&amp;INFO_FORMAT=text/mapml&amp;FEATURE_COUNT=50&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;QUERY_LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX={xmin},{ymin},{xmax},{ymax}&amp;x={i}&amp;y={j}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszLayer, pszCRS);
 
   msIO_fprintf(fp, "    </extent>\n");
   msIO_fprintf(fp, "  </body>\n");
@@ -269,3 +270,208 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
 #endif /* USE_MAPML */
 }
 
+
+
+/*
+** msWriteMapMLLayer()
+**
+** Dump MapML query results for WMS GetFeatureInfo
+**
+**
+** Returns MS_SUCCESS/MS_FAILURE
+*/
+
+//TODO: Based on msGMLWriteQuery() but may be better handled using query templates??
+
+int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
+{
+#if defined(USE_MAPML)
+  int status;
+  int i,j,k;
+  layerObj *lp=NULL;
+  shapeObj shape;
+  char szPath[MS_MAXPATHLEN];
+  char *value;
+  char *pszMapSRS = NULL;
+
+  gmlGroupListObj *groupList=NULL;
+  gmlItemListObj *itemList=NULL;
+  gmlConstantListObj *constantList=NULL;
+  gmlGeometryListObj *geometryList=NULL;
+  gmlItemObj *item=NULL;
+  gmlConstantObj *constant=NULL;
+
+  msInitShape(&shape);
+
+
+  msIO_setHeader("Content-Type","text/mapml");
+  msIO_sendHeaders();
+
+  msIO_fprintf(fp, "<?xml version='1.0' encoding=\"UTF-8\" ?>\n");
+  msIO_fprintf(fp, "<mapml>\n");
+  msIO_fprintf(fp, "  <head>\n");
+  msIO_fprintf(fp, "  <title>GetFeatureInfo Results</title>\n");
+  //msIO_fprintf(fp, "  <base href=\"TODO-href\" />\n");
+  msIO_fprintf(fp, "  <meta charset=\"utf-8\" />\n");
+  // TODO: Add PROJECTION param to Content-Type value
+  msIO_fprintf(fp, "  <meta http-equiv=\"Content-Type\" content=\"text/mapml\" />\n");
+
+  msIO_fprintf(fp, "  </head>\n");
+
+  msIO_fprintf(fp, "  <body>\n");
+  msIO_fprintf(fp, "    <extent />\n");  // Mandatory extent element (empty)
+
+
+
+  /* Look up map SRS. We need an EPSG code for GML, if not then we get null and we'll fall back on the layer's SRS */
+  msOWSGetEPSGProj(&(map->projection), NULL, namespaces, MS_TRUE, &pszMapSRS);
+
+  /* step through the layers looking for query results */
+  for(i=0; i<map->numlayers; i++) {
+    char *pszOutputSRS = NULL;
+    int nSRSDimension = 2;
+    const char* geomtype;
+    char *layername=NULL, *layertitle=NULL;
+    
+    lp = (GET_LAYER(map, map->layerorder[i]));
+
+    if(lp->resultcache && lp->resultcache->numresults > 0) { /* found results */
+
+#ifdef USE_PROJ
+      /* Determine output SRS, if map has none, then try using layer's native SRS */
+      if ((pszOutputSRS = pszMapSRS) == NULL) {
+        msOWSGetEPSGProj(&(lp->projection), NULL, namespaces, MS_TRUE, &pszOutputSRS);
+        if (pszOutputSRS == NULL) {
+          msSetError(MS_WMSERR, "No valid EPSG code in map or layer projection for GML output", "msGMLWriteQuery()");
+          continue;  /* No EPSG code, cannot output this layer */
+        }
+      }
+#endif
+
+      /* start this collection (layer) */
+      
+      // TODO: Lookup layername metadata, and chack for NULL lp->name
+      /* if no layer name provided fall back on the layer name + "_layer" */
+      layername = (char*) msSmallMalloc(strlen(lp->name)+7);
+      sprintf(layername, "%s", lp->name);
+      //msOWSPrintValidateMetadata(fp, &(lp->metadata), namespaces, "layername", OWS_NOERR, "\t<%s>\n", layername);
+
+      layertitle = (char *) msOWSLookupMetadata(&(lp->metadata), "OM", "title");
+      if (layertitle) {
+        //msOWSPrintEncodeMetadata(fp, &(lp->metadata), namespaces, "title", OWS_NOERR, "\t<gml:name>%s</gml:name>\n", layertitle);
+      }
+
+      geomtype = msOWSLookupMetadata(&(lp->metadata), "OFG", "geomtype");
+      if( geomtype != NULL && (strstr(geomtype, "25d") != NULL || strstr(geomtype, "25D") != NULL) )
+      {
+          msIO_fprintf(fp, "<!-- WARNING: 25d requested for layer '%s' but MapML only supports 2D. -->\n", lp->name);
+      }
+
+      /* populate item and group metadata structures */
+      itemList = msGMLGetItems(lp, namespaces);
+      constantList = msGMLGetConstants(lp, namespaces);
+      groupList = msGMLGetGroups(lp, namespaces);
+      geometryList = msGMLGetGeometries(lp, namespaces, MS_FALSE);
+      if (itemList == NULL || constantList == NULL || groupList == NULL || geometryList == NULL) {
+        msSetError(MS_MISCERR, "Unable to populate item and group metadata structures", "msGMLWriteQuery()");
+        return MS_FAILURE;
+      }
+
+      for(j=0; j<lp->resultcache->numresults; j++) {
+        status = msLayerGetShape(lp, &shape, &(lp->resultcache->results[j]));
+        if(status != MS_SUCCESS) {
+           msGMLFreeGroups(groupList);
+           msGMLFreeConstants(constantList);
+           msGMLFreeItems(itemList);
+           msGMLFreeGeometries(geometryList);
+           return(status);
+        }
+
+#ifdef USE_PROJ
+        /* project the shape into the map projection (if necessary), note that this projects the bounds as well */
+        if(pszOutputSRS == pszMapSRS && msProjectionsDiffer(&(lp->projection), &(map->projection))) {
+          status = msProjectShape(&lp->projection, &map->projection, &shape);
+          if(status != MS_SUCCESS) {
+            msIO_fprintf(fp, "<!-- Warning: Failed to reproject shape: %s -->\n",msGetErrorString(","));
+            continue;
+          }
+        }
+#endif
+
+        /* start this feature */
+        msIO_fprintf(fp, "      <feature id=\"%s.%d\" class=\"%s\">\n", layername, shape.index, layername);
+
+        // TODO: handle geomeotry output...
+        //
+        /* Write the feature geometry and bounding box unless 'none' was requested. */
+        /* Default to bbox only if nothing specified and output full geometry only if explicitly requested */
+        /*  
+        if(!(geometryList && geometryList->numgeometries == 1 && strcasecmp(geometryList->geometries[0].name, "none") == 0)) {
+          gmlWriteBounds(fp, OWS_GML2, &(shape.bounds), pszOutputSRS, "\t\t\t", "gml");
+          if (geometryList && geometryList->numgeometries > 0 )
+            gmlWriteGeometry(fp, geometryList, OWS_GML2, &(shape), pszOutputSRS, NULL, "\t\t\t", "", nSRSDimension);
+        }
+        */
+        
+        /* write properties */
+        msIO_fprintf(fp, "        <properties>\n");
+        msIO_fprintf(fp, "          <table>\n");
+        msIO_fprintf(fp, "            <thead>\n");
+        msIO_fprintf(fp, "              <tr>\n");
+        msIO_fprintf(fp, "                <th role=\"columnheader\" scope=\"col\">Property Name</th>\n");
+        msIO_fprintf(fp, "                <th role=\"columnheader\" scope=\"col\">Property Value</th>\n");
+        msIO_fprintf(fp, "              </tr>\n");
+        msIO_fprintf(fp, "            </thead>\n");
+        
+        for(k=0; k<itemList->numitems; k++) {
+          item = &(itemList->items[k]);
+          if(msItemInGroups(item->name, groupList) == MS_FALSE) {
+            msIO_fprintf(fp, "            <tbody>\n");
+            msIO_fprintf(fp, "              <tr>\n");
+            msIO_fprintf(fp, "                <th scope=\"row\">%s</th>\n", item->name);
+            msIO_fprintf(fp, "                <td itemprop=\"%s\">%s</td>\n", item->name, shape.values[k]);
+            msIO_fprintf(fp, "              </tr>\n");
+            msIO_fprintf(fp, "            </tbody>\n");
+          }
+        }
+
+        msIO_fprintf(fp, "          </table>\n");
+        msIO_fprintf(fp, "        </properties>\n");
+
+
+        /* end this feature */
+        msIO_fprintf(fp, "      </feature>\n");
+
+        msFreeShape(&shape); /* init too */
+      }
+
+      /* end this collection (layer) */
+      msFree(layername);
+      msFree(layertitle);
+
+      msGMLFreeGroups(groupList);
+      msGMLFreeConstants(constantList);
+      msGMLFreeItems(itemList);
+      msGMLFreeGeometries(geometryList);
+
+      /* msLayerClose(lp); */
+    }
+    if(pszOutputSRS!=pszMapSRS) {
+      msFree(pszOutputSRS);
+    }
+  } /* next layer */
+
+
+  
+  /* end this document */
+  msIO_fprintf(fp, "  </body>\n");
+  msIO_fprintf(fp, "</mapml>\n");
+
+
+  return(MS_SUCCESS);
+
+#else
+  msSetError(MS_MISCERR, "MapML support not enabled", "msWriteMapMLQuery()");
+  return MS_FAILURE;
+#endif
+}

@@ -569,7 +569,8 @@ int msSOSDispatch(mapObj *map, cgiRequestObj *requestobj, owsRequestObj *ows_req
  *   mapml.c
  *====================================================================*/
 
-MS_DLL_EXPORT int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *ows_request);
+int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *ows_request);
+int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces);
 
 #ifdef __cplusplus
 } /* extern "C" */
