@@ -2573,6 +2573,62 @@ void msOWSGetEPSGProj(projectionObj *proj, hashTableObj *metadata, const char *n
     return;
   }
 }
+
+/*
+** msOWSIsCRSValid()
+**
+** Check if specified CRS (EPSG code) is valid for this proj / metadata combination
+** Can be used either with map or layer level metadata.
+** See also msOWSIsCRSValid2() to test both map + layer level at once.
+**
+** Returns TRUE if valid, FALSE otherwise.
+*/
+int msOWSIsCRSValid(projectionObj *proj, hashTableObj *metadata, const char *namespaces, const char *crs)
+{
+  int crsvalid = MS_FALSE;
+  if (crs && strlen(crs) > 4) {
+    char *projstring;
+    msOWSGetEPSGProj(proj, metadata, namespaces, MS_FALSE, &projstring);
+    if (projstring) {
+      char **tokens;
+      int i, n=0;
+      tokens = msStringSplit(projstring, ' ', &n);
+      if (tokens && n > 0) {
+        for(i=0; i<n; i++) {
+          if (strcasecmp(tokens[i], crs) == 0) {
+            crsvalid = MS_TRUE;
+            break;
+          }
+        }
+        msFreeCharArray(tokens, n);
+      }
+      msFree(projstring);
+    }
+  }
+  return crsvalid;
+}
+
+/*
+** msOWSIsCRSValid2()
+**
+** Check if specified CRS (EPSG code) is valid for this layer or at the map level.
+**
+** Both map and lp can also be passed as NULL in order to test only at the map or layer lvel
+**
+** Returns TRUE if valid, FALSE otherwise.
+*/
+int msOWSIsCRSValid2(mapObj *map, layerObj *lp, const char *namespaces, const char *crs)
+{
+  int crsvalid = MS_FALSE;
+  if (map)
+    crsvalid = msOWSIsCRSValid(&(map->projection), &(map->web.metadata), namespaces, crs);
+
+  if (!crsvalid && lp)
+    crsvalid = msOWSIsCRSValid(&(lp->projection), &(lp->metadata), namespaces, crs);
+
+  return crsvalid;
+}
+
 /*
 ** msOWSGetProjURN()
 **

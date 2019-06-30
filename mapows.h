@@ -303,6 +303,8 @@ void msOWSProcessException(layerObj *lp, const char *pszFname,
 char *msOWSBuildURLFilename(const char *pszPath, const char *pszURL,
                             const char *pszExt);
 void msOWSGetEPSGProj(projectionObj *proj, hashTableObj *metadata, const char *namespaces, int bReturnOnlyFirstOne, char **epsgProj);
+int msOWSIsCRSValid(projectionObj *proj, hashTableObj *metadata, const char *namespaces, const char *crs);
+int msOWSIsCRSValid2(mapObj *map, layerObj *lp, const char *namespaces, const char *crs);
 char *msOWSGetProjURN(projectionObj *proj, hashTableObj *metadata, const char *namespaces, int bReturnOnlyFirstOne);
 char *msOWSGetProjURI(projectionObj *proj, hashTableObj *metadata, const char *namespaces, int bReturnOnlyFirstOne);
 
