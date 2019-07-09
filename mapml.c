@@ -110,6 +110,7 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
   int *isUsedInNestedGroup = NULL;
 
   char *pszProjection = "OSMTILE", *pszCRS=NULL;
+  const char *pszBBOX=NULL;
   char *script_url = NULL, *script_url_encoded = NULL;
 
   projectionObj proj;
@@ -186,8 +187,12 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
     pszCRS = "EPSG:3978";  // Canada LCC
   else if (pszProjection && strcasecmp(pszProjection, "APSTILE") == 0)
     pszCRS = "EPSG:5936";  // Alaska Polar Stereographic
-  else if (pszProjection && strcasecmp(pszProjection, "WGS84") == 0)
+  else if (pszProjection && strcasecmp(pszProjection, "WGS84-4326") == 0) {
     pszCRS = "EPSG:4326";
+  }
+  else if (pszProjection && strcasecmp(pszProjection, "WGS84") == 0) {
+    pszCRS = "CRS:84";
+  }
   else {
     msSetError(MS_WMSERR, "Invalid PROJECTION parameter", "msWriteMapMLLayer()");
     return MS_FAILURE;
@@ -243,16 +248,21 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
   msIO_fprintf(fp, "      <input name=\"xmax\" type=\"location\" units=\"pcrs\" position=\"top-right\" axis=\"easting\" min=\"%g\" max=\"%g\" />\n", ext.minx, ext.maxx);
   msIO_fprintf(fp, "      <input name=\"ymax\" type=\"location\" units=\"pcrs\" position=\"top-left\" axis=\"northing\" min=\"%g\" max=\"%g\" />\n", ext.miny, ext.maxy);
 
+  /* WMS BBOX format, coordinate default to X,Y, except for EPSG:4326 where it is lat,lon */
+  pszBBOX = "{xmin},{ymin},{xmax},{ymax}";
+  if (EQUAL(pszCRS, "EPSG:4326"))
+    pszBBOX = "{ymin},{xmin},{ymax},{xmax}";
+
   /* GetMap URL */
   // TODO: Set proper output format and transparency... special metadata?
-  msIO_fprintf(fp, "      <link rel=\"image\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetMap&amp;FORMAT=image/png&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX={xmin},{ymin},{xmax},{ymax}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszCRS);
+  msIO_fprintf(fp, "      <link rel=\"image\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetMap&amp;FORMAT=image/png&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX=%s&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszCRS, pszBBOX);
 
   /* If layer is queryable then enable GetFeatureInfo */
   // TODO Check if layer is queryable (also need to check top-level map, groups, nested groups)
   // TODO: Check if wms_getfeatureinfo_formatlist includes text/mapml */
   msIO_fprintf(fp, "      <input name=\"i\" type=\"location\" axis=\"i\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
   msIO_fprintf(fp, "      <input name=\"j\" type=\"location\" axis=\"j\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
-  msIO_fprintf(fp, "      <link rel=\"query\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetFeatureInfo&amp;INFO_FORMAT=text/mapml&amp;FEATURE_COUNT=50&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;QUERY_LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX={xmin},{ymin},{xmax},{ymax}&amp;x={i}&amp;y={j}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszLayer, pszCRS);
+  msIO_fprintf(fp, "      <link rel=\"query\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetFeatureInfo&amp;INFO_FORMAT=text/mapml&amp;FEATURE_COUNT=50&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;QUERY_LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX=%s&amp;x={i}&amp;y={j}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszLayer, pszCRS, pszBBOX);
 
   msIO_fprintf(fp, "    </extent>\n");
   msIO_fprintf(fp, "  </body>\n");
