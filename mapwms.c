@@ -5200,7 +5200,7 @@ int msWMSDispatch(mapObj *map, cgiRequestObj *req, owsRequestObj *ows_request, i
      * This is not a standard WMS request, but it fits nicely here for now.
      */
     msOWSRequestLayersEnabled(map, "MO", request, ows_request);
-    if ( msWriteMapMLLayer(stdout, map, req, ows_request) != MS_SUCCESS )
+    if ( msWriteMapMLLayer(stdout, map, req, ows_request, "WMS") != MS_SUCCESS )
       return msWMSException(map, nVersion, NULL, wms_exception_format);
     /* Request completed */
     return MS_SUCCESS;

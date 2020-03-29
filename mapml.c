@@ -97,7 +97,7 @@ int msMapMLException(mapObj *map, const char *exception_code)
 **
 ** Returns MS_SUCCESS/MS_FAILURE
 */
-int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *ows_request)
+int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *ows_request, const char *pszService)
 {
 #ifdef USE_MAPML
   int i = 0;
@@ -112,10 +112,11 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
   char *pszProjection = "OSMTILE", *pszCRS=NULL;
   const char *pszBBOX=NULL;
   char *script_url = NULL, *script_url_encoded = NULL;
+  const char *pszVal1=NULL, *pszVal2=NULL;
 
   projectionObj proj;
   rectObj ext;
-
+  
   /* We need this server's onlineresource. It will come with the trailing "?" or "&" */
   /* the returned string should be freed once we're done with it. */
   if ((script_url=msOWSGetOnlineResource(map, "MO", "onlineresource", req)) == NULL ||
@@ -220,7 +221,6 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
   msIO_setHeader("Content-Type","text/mapml");
   msIO_sendHeaders();
 
-  msIO_fprintf(fp, "<?xml version='1.0' encoding=\"UTF-8\" ?>\n");
   msIO_fprintf(fp, "<mapml>\n");
   msIO_fprintf(fp, "  <head>\n");
 
@@ -234,36 +234,71 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
   msIO_fprintf(fp, "  <meta charset=\"utf-8\" />\n");
   msIO_fprintf(fp, "  <meta http-equiv=\"Content-Type\" content=\"text/mapml;projection=%s\" />\n", pszProjection);
 
+  /* link rel-license - mapped to *_attribution_* metadata */
+  pszVal1 = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), "MO", "attribution_onlineresource" );
+  pszVal2 = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), "MO", "attribution_title" );
+  if (pszVal1 || pszVal2)
+  {
+    char *encoded_str;
+    msIO_fprintf(fp, "  <link rel=\"license\"");
+    if (pszVal1) {
+      encoded_str = msEncodeHTMLEntities(pszVal1);
+      msIO_fprintf(fp, " href=\"%s\"", encoded_str);
+      msFree(encoded_str);
+    }
+    if (pszVal2) {
+      encoded_str = msEncodeHTMLEntities(pszVal2);
+      msIO_fprintf(fp, " title=\"%s\"", encoded_str);
+      msFree(encoded_str);
+    }
+    msIO_fprintf(fp, " />\n");
+  }
   msIO_fprintf(fp, "  </head>\n");
 
   msIO_fprintf(fp, "  <body>\n");
   msIO_fprintf(fp, "    <extent units=\"%s\">\n", pszProjection);
-  // TODO: Is Z really used for WMS case?
-  msIO_fprintf(fp, "      <input name=\"z\" type=\"zoom\" value=\"10\" min=\"4\" max=\"18\" />\n");
-  msIO_fprintf(fp, "      <input name=\"w\" type=\"width\" />\n");
-  msIO_fprintf(fp, "      <input name=\"h\" type=\"height\" />\n");
+  if (EQUAL(pszService, "MAPMLTILE")) {
+    // MAPML TILE mode: Serve requested layer as tiles using mode=tile&tilemode=gmap
+    // TODO: is this use case valid only for the OSMTILE projection???
+    
+    // Special case to map top-level map layer in WMS to special keyword "all" in mapserv CGI syntax
+    if (map->name && EQUAL(map->name, pszLayer))
+      pszLayer = "all";
+    
+    msIO_fprintf(fp, "      <input name=\"z\" type=\"zoom\" value=\"10\" min=\"4\" max=\"15\" />\n");
+    msIO_fprintf(fp, "      <input name=\"y\" type=\"location\" units=\"tilematrix\" axis=\"row\" min=\"0\" max=\"32768\" />\n");
+    msIO_fprintf(fp, "      <input name=\"x\" type=\"location\" units=\"tilematrix\" axis=\"column\" min=\"0\" max=\"32768\" />\n");
+    msIO_fprintf(fp, "      <link rel=\"tile\" tref=\"%smode=tile&amp;tilemode=gmap&amp;FORMAT=image/png&amp;LAYERS=%s&amp;tile={x}+{y}+{z}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer);
 
-  msIO_fprintf(fp, "      <input name=\"xmin\" type=\"location\" units=\"pcrs\" position=\"top-left\" axis=\"easting\" min=\"%g\" max=\"%g\" />\n", ext.minx, ext.maxx);
-  msIO_fprintf(fp, "      <input name=\"ymin\" type=\"location\" units=\"pcrs\" position=\"bottom-left\" axis=\"northing\" min=\"%g\" max=\"%g\" />\n", ext.miny, ext.maxy);
-  msIO_fprintf(fp, "      <input name=\"xmax\" type=\"location\" units=\"pcrs\" position=\"top-right\" axis=\"easting\" min=\"%g\" max=\"%g\" />\n", ext.minx, ext.maxx);
-  msIO_fprintf(fp, "      <input name=\"ymax\" type=\"location\" units=\"pcrs\" position=\"top-left\" axis=\"northing\" min=\"%g\" max=\"%g\" />\n", ext.miny, ext.maxy);
+  }
+  else {
+    // Default to WMS mode
+    msIO_fprintf(fp, "      <input name=\"w\" type=\"width\" />\n");
+    msIO_fprintf(fp, "      <input name=\"h\" type=\"height\" />\n");
+  
+    
+    msIO_fprintf(fp, "      <input name=\"xmin\" type=\"location\" units=\"pcrs\" position=\"top-left\" axis=\"easting\" min=\"%g\" max=\"%g\" />\n", ext.minx, ext.maxx);
+    msIO_fprintf(fp, "      <input name=\"ymin\" type=\"location\" units=\"pcrs\" position=\"bottom-left\" axis=\"northing\" min=\"%g\" max=\"%g\" />\n", ext.miny, ext.maxy);
+    msIO_fprintf(fp, "      <input name=\"xmax\" type=\"location\" units=\"pcrs\" position=\"top-right\" axis=\"easting\" min=\"%g\" max=\"%g\" />\n", ext.minx, ext.maxx);
+    msIO_fprintf(fp, "      <input name=\"ymax\" type=\"location\" units=\"pcrs\" position=\"top-left\" axis=\"northing\" min=\"%g\" max=\"%g\" />\n", ext.miny, ext.maxy);
 
-  /* WMS BBOX format, coordinate default to X,Y, except for EPSG:4326 where it is lat,lon */
-  pszBBOX = "{xmin},{ymin},{xmax},{ymax}";
-  if (EQUAL(pszCRS, "EPSG:4326"))
-    pszBBOX = "{ymin},{xmin},{ymax},{xmax}";
+    /* WMS BBOX format, coordinate default to X,Y, except for EPSG:4326 where it is lat,lon */
+    pszBBOX = "{xmin},{ymin},{xmax},{ymax}";
+    if (EQUAL(pszCRS, "EPSG:4326"))
+      pszBBOX = "{ymin},{xmin},{ymax},{xmax}";
 
-  /* GetMap URL */
-  // TODO: Set proper output format and transparency... special metadata?
-  msIO_fprintf(fp, "      <link rel=\"image\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetMap&amp;FORMAT=image/png&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX=%s&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszCRS, pszBBOX);
+    /* GetMap URL */
+    // TODO: Set proper output format and transparency... special metadata?
+    msIO_fprintf(fp, "      <link rel=\"image\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetMap&amp;FORMAT=image/png&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX=%s&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszCRS, pszBBOX);
 
-  /* If layer is queryable then enable GetFeatureInfo */
-  // TODO Check if layer is queryable (also need to check top-level map, groups, nested groups)
-  // TODO: Check if wms_getfeatureinfo_formatlist includes text/mapml */
-  msIO_fprintf(fp, "      <input name=\"i\" type=\"location\" axis=\"i\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
-  msIO_fprintf(fp, "      <input name=\"j\" type=\"location\" axis=\"j\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
-  msIO_fprintf(fp, "      <link rel=\"query\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetFeatureInfo&amp;INFO_FORMAT=text/mapml&amp;FEATURE_COUNT=50&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;QUERY_LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX=%s&amp;x={i}&amp;y={j}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszLayer, pszCRS, pszBBOX);
-
+    /* If layer is queryable then enable GetFeatureInfo */
+    // TODO Check if layer is queryable (also need to check top-level map, groups, nested groups)
+    // TODO: Check if wms_getfeatureinfo_formatlist includes text/mapml */
+    msIO_fprintf(fp, "      <input name=\"i\" type=\"location\" axis=\"i\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
+    msIO_fprintf(fp, "      <input name=\"j\" type=\"location\" axis=\"j\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
+    msIO_fprintf(fp, "      <link rel=\"query\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetFeatureInfo&amp;INFO_FORMAT=text/mapml&amp;FEATURE_COUNT=1&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;QUERY_LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX=%s&amp;x={i}&amp;y={j}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszLayer, pszCRS, pszBBOX);
+  }
+  
   msIO_fprintf(fp, "    </extent>\n");
   msIO_fprintf(fp, "  </body>\n");
   msIO_fprintf(fp, "</mapml>\n");
@@ -317,7 +352,6 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
   msIO_setHeader("Content-Type","text/mapml");
   msIO_sendHeaders();
 
-  msIO_fprintf(fp, "<?xml version='1.0' encoding=\"UTF-8\" ?>\n");
   msIO_fprintf(fp, "<mapml>\n");
   msIO_fprintf(fp, "  <head>\n");
   msIO_fprintf(fp, "  <title>GetFeatureInfo Results</title>\n");
@@ -483,5 +517,64 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
 #else
   msSetError(MS_MISCERR, "MapML support not enabled", "msWriteMapMLQuery()");
   return MS_FAILURE;
+#endif
+}
+
+
+/*
+** msMapMLTileDispatch() is the entry point for MAPMLTILE requests.
+**
+** Note: MapServer does not really support MAPMLTILE.
+** This is only so that we can accept vendor-specific SERVICE=MAPMLTILE&REQUEST=GetMapML
+**
+** - If this is a valid request then it is processed and MS_SUCCESS is returned
+**   on success, or MS_FAILURE on failure.
+** - If this does not appear to be a valid WMTS request then MS_DONE
+**   is returned and MapServer is expected to process this as a regular
+**   MapServer request.
+*/
+int msMapMLTileDispatch(mapObj *map, cgiRequestObj *req, owsRequestObj *ows_request)
+{
+#ifdef USE_MAPML
+  int i;
+  const char *request=NULL, *service=NULL;
+
+  /*
+  ** Process Params
+  */
+  for(i=0; i<req->NumParams; i++) {
+    if (strcasecmp(req->ParamNames[i], "REQUEST") == 0)
+      request = req->ParamValues[i];
+    else if (strcasecmp(req->ParamNames[i], "SERVICE") == 0)
+      service = req->ParamValues[i];
+   }
+
+  /* If SERVICE is specified then it MUST be "MAPMLTILE" */
+  if (service != NULL && strcasecmp(service, "MAPMLTILE") != 0)
+    return MS_DONE;  /* Not a MAPMLTILE request */
+
+  /*
+  ** Dispatch request... 
+  */
+  if (request && strcasecmp(request, "GetMapML") == 0 ) {
+    /* Return a MapML document for specified LAYER and PROJECTION
+     * This is a vendor-specific extension, not a standard request.
+     */
+    msOWSRequestLayersEnabled(map, "MO", request, ows_request);
+    if ( msWriteMapMLLayer(stdout, map, req, ows_request, "MAPMLTILE") != MS_SUCCESS )
+      return msMapMLException(map, "InvalidRequest");
+    /* Request completed */
+    return MS_SUCCESS;
+  }
+  
+  /* Hummmm... incomplete or unsupported request */
+  if (service != NULL && strcasecmp(service, "MAPMLTILE") == 0) {
+    msSetError(MS_WMSERR, "Incomplete or unsupported MAPMLTILE request", "msMapMTileDispatch()");
+    return msMapMLException(map, "InvalidRequest");
+  } else
+    return MS_DONE;  /* Not a MAPMLTILE request */
+#else
+  msSetError(MS_WMSERR, "MAPMLTILE service support is not available.", "msMapMLTileDispatch()");
+  return(MS_FAILURE);
 #endif
 }
