@@ -30,31 +30,96 @@
 
 #define _GNU_SOURCE
 
-/* TODO: remove unused headers */
-
 #include "mapserver.h"
-#include "maperror.h"
-#include "mapthread.h"
-#include "mapgml.h"
-#include <ctype.h>
-#include "maptemplate.h"
 #include "mapows.h"
 
-#include "mapogcsld.h"
-#include "mapogcfilter.h"
-#include "mapowscommon.h"
+#include "cpl_string.h"  /* CPLSPrintf() */
 
-#include "maptime.h"
-#include "mapproject.h"
-
-#include <stdarg.h>
-#include <time.h>
-#include <string.h>
-
-#ifdef WIN32
-#include <process.h>
+/* There is a dependency on libxml2 for XML handling */
+#ifdef USE_LIBXML2
+#include "maplibxml2.h"
 #endif
 
+/* 
+ * Utility function to output MapML doc via msIO
+ */
+
+static int _msIO_MapMLDump(FILE *fp, xmlDocPtr psDoc)
+{
+  int status = MS_SUCCESS;
+
+  /* Note: we want to avoid the <?xml declaration in the output, 
+   * so we dump the root node instead of the document itself */
+  xmlBufferPtr buf = xmlBufferCreate();
+  if (xmlNodeDump(buf, psDoc, xmlDocGetRootElement(psDoc), 0, 1) > 0) {
+    msIO_printf("%s\n", buf->content);
+  }
+  else {
+    // TODO: Produce an exception
+    msSetError(MS_WMSERR, "Writing MapML XML output failed.", "_msIO_MapMLDump()");
+    status = MS_FAILURE;
+  }
+  xmlBufferFree (buf);
+
+  return status;
+}
+
+/* A couple of useful XML-generation shortcuts */
+
+static xmlNodePtr _xmlNewChild1Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1)
+{
+  xmlNodePtr _node = xmlNewChild(parent_node, NULL, BAD_CAST node_name, BAD_CAST node_value);
+  if (value1) xmlNewProp(_node, BAD_CAST prop1, BAD_CAST value1);
+  return _node;
+}
+
+static xmlNodePtr _xmlNewChild2Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1, const char *prop2, const char *value2)
+{
+  xmlNodePtr _node = xmlNewChild(parent_node, NULL, BAD_CAST node_name, BAD_CAST node_value);
+  if (value1) xmlNewProp(_node, BAD_CAST prop1, BAD_CAST value1);
+  if (value2) xmlNewProp(_node, BAD_CAST prop2, BAD_CAST value2);
+  return _node;
+}
+
+static xmlNodePtr _xmlNewChild3Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1, const char *prop2, const char *value2, const char *prop3, const char *value3)
+{
+  xmlNodePtr _node = xmlNewChild(parent_node, NULL, BAD_CAST node_name, BAD_CAST node_value);
+  if (value1) xmlNewProp(_node, BAD_CAST prop1, BAD_CAST value1);
+  if (value2) xmlNewProp(_node, BAD_CAST prop2, BAD_CAST value2);
+  if (value3) xmlNewProp(_node, BAD_CAST prop3, BAD_CAST value3);
+  return _node;
+}
+
+static xmlNodePtr _xmlNewChild4Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1, const char *prop2, const char *value2, const char *prop3, const char *value3, const char *prop4, const char *value4)
+{
+  xmlNodePtr _node = xmlNewChild(parent_node, NULL, BAD_CAST node_name, BAD_CAST node_value);
+  if (value1) xmlNewProp(_node, BAD_CAST prop1, BAD_CAST value1);
+  if (value2) xmlNewProp(_node, BAD_CAST prop2, BAD_CAST value2);
+  if (value3) xmlNewProp(_node, BAD_CAST prop3, BAD_CAST value3);
+  if (value4) xmlNewProp(_node, BAD_CAST prop4, BAD_CAST value4);
+  return _node;
+}
+
+static xmlNodePtr _xmlNewChild5Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1, const char *prop2, const char *value2, const char *prop3, const char *value3, const char *prop4, const char *value4, const char *prop5, const char *value5)
+{
+  xmlNodePtr _node = xmlNewChild(parent_node, NULL, BAD_CAST node_name, BAD_CAST node_value);
+  if (value1) xmlNewProp(_node, BAD_CAST prop1, BAD_CAST value1);
+  if (value2) xmlNewProp(_node, BAD_CAST prop2, BAD_CAST value2);
+  if (value3) xmlNewProp(_node, BAD_CAST prop3, BAD_CAST value3);
+  if (value4) xmlNewProp(_node, BAD_CAST prop4, BAD_CAST value4);
+  if (value5) xmlNewProp(_node, BAD_CAST prop5, BAD_CAST value5);
+  return _node;
+}
+
+static void _xmlNewPropInt(xmlNodePtr _node, const char *prop1, int value1)
+{
+  xmlNewProp(_node, BAD_CAST prop1, BAD_CAST CPLSPrintf("%d", value1));
+}
+
+static void _xmlNewPropDouble(xmlNodePtr _node, const char *prop1, double value1)
+{
+  xmlNewProp(_node, BAD_CAST prop1, BAD_CAST CPLSPrintf("%g", value1));
+}
 
 /*
 ** msMapMLException()
@@ -101,7 +166,7 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
 {
 #ifdef USE_MAPML
   int i = 0;
-  char *pszLayer = NULL;
+  const char *pszLayer = NULL, *pszStyle = "";
   layerObj *lp;
   int nLayers =0;
   int iLayerIndex = -1;
@@ -110,17 +175,17 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
   int *isUsedInNestedGroup = NULL;
 
   char *pszProjection = "OSMTILE", *pszCRS=NULL;
-  const char *pszBBOX=NULL;
-  char *script_url = NULL, *script_url_encoded = NULL;
+  char *script_url = NULL;
   const char *pszVal1=NULL, *pszVal2=NULL;
 
+  const char *pszEncoding = "UTF-8";
+  
   projectionObj proj;
   rectObj ext;
   
   /* We need this server's onlineresource. It will come with the trailing "?" or "&" */
   /* the returned string should be freed once we're done with it. */
-  if ((script_url=msOWSGetOnlineResource(map, "MO", "onlineresource", req)) == NULL ||
-      (script_url_encoded = msEncodeHTMLEntities(script_url)) == NULL)  {
+  if ((script_url=msOWSGetOnlineResource(map, "MO", "onlineresource", req)) == NULL)  {
     msSetError(MS_WMSERR, "Missing OnlineResource.", "msWriteMapMLLayer()");
     return MS_FAILURE;
   }
@@ -134,6 +199,11 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
     
     if(strcasecmp(req->ParamNames[i], "PROJECTION") == 0) {
       pszProjection = req->ParamValues[i];
+    }
+    
+    if(strcasecmp(req->ParamNames[i], "STYLE") == 0) {
+      // TODO ideally we should validate that supplied style exists, see mapwms.c
+      pszStyle = req->ParamValues[i];
     }
   }
 
@@ -209,54 +279,55 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
   memcpy(&ext, &(map->extent), sizeof(rectObj));
   msInitProjection(&proj);
   if (msLoadProjectionStringEPSG(&proj, pszCRS) != 0) {
-    /* Failed to load projection, msSetError shoudl already have been called */
+    /* Failed to load projection, msSetError shoudlshould already have been called */
     return MS_FAILURE;
   }
   if (msProjectionsDiffer(&(map->projection), &proj) == MS_TRUE) {
     msProjectRect(&(map->projection), &proj, &ext);
   } 
   
-  /* We're good to go. Generate output for this layer */
   
-  msIO_setHeader("Content-Type","text/mapml");
-  msIO_sendHeaders();
+  /* 
+   * We're good to go. Create a new <mapml> document and start populating the <head> and <body>
+   */
+  xmlDocPtr psMapMLDoc = NULL;       /* libxml2 document pointer */
+  xmlNodePtr root_node = NULL, psMapMLHead = NULL, psMapMLBody = NULL, psNode = NULL;
 
-  msIO_fprintf(fp, "<mapml>\n");
-  msIO_fprintf(fp, "  <head>\n");
+  psMapMLDoc = xmlNewDoc(BAD_CAST "1.0");
+  root_node = xmlNewNode(NULL, BAD_CAST "mapml");
+  xmlDocSetRootElement(psMapMLDoc, root_node);
 
-  /* If LAYER name is the top-level map then return map title, otherwise return the first matching layer's title */
+  psMapMLHead = xmlNewChild(root_node, NULL, BAD_CAST "head", NULL);
+  psMapMLBody = xmlNewChild(root_node, NULL, BAD_CAST "body", NULL);
+
+  /* *** mapmp/head *** */
+  
+  /* <title>: If LAYER name is the top-level map then return map title, otherwise return the first matching layer's title */
   if (map->name && EQUAL(map->name, pszLayer))
-    msOWSPrintEncodeMetadata(fp, &(map->web.metadata), "MO", "title", OWS_WARN, "  <title>%s</title>\n", map->name);
+    pszVal1 = msOWSLookupMetadata3( &(map->web.metadata), NULL, "MO", "title", map->name );
   else
-    msOWSPrintEncodeMetadata(fp, &(lp->metadata), "MO", "title", OWS_WARN, "  <title>%s</title>\n", lp->name);
+    pszVal1 = msOWSLookupMetadata3( &(lp->metadata), NULL, "MO", "title", lp->name );
   
-  //msIO_fprintf(fp, "  <base href=\"TODO-href\" />\n");
-  msIO_fprintf(fp, "  <meta charset=\"utf-8\" />\n");
-  msIO_fprintf(fp, "  <meta http-equiv=\"Content-Type\" content=\"text/mapml;projection=%s\" />\n", pszProjection);
+  if (pszVal1)
+    psNode = xmlNewChild(psMapMLHead, NULL, BAD_CAST "title", BAD_CAST pszVal1);
+
+  /* <meta> */
+  _xmlNewChild1Prop(psMapMLHead, "meta", NULL, "charset", pszEncoding);
+
+  _xmlNewChild2Prop(psMapMLHead, "meta", NULL, "http-equiv", "Content-Type",
+                    "content", CPLSPrintf("text/mapml;projection=%s", pszProjection) );
 
   /* link rel-license - mapped to *_attribution_* metadata */
   pszVal1 = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), "MO", "attribution_onlineresource" );
   pszVal2 = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), "MO", "attribution_title" );
   if (pszVal1 || pszVal2)
-  {
-    char *encoded_str;
-    msIO_fprintf(fp, "  <link rel=\"license\"");
-    if (pszVal1) {
-      encoded_str = msEncodeHTMLEntities(pszVal1);
-      msIO_fprintf(fp, " href=\"%s\"", encoded_str);
-      msFree(encoded_str);
-    }
-    if (pszVal2) {
-      encoded_str = msEncodeHTMLEntities(pszVal2);
-      msIO_fprintf(fp, " title=\"%s\"", encoded_str);
-      msFree(encoded_str);
-    }
-    msIO_fprintf(fp, " />\n");
-  }
-  msIO_fprintf(fp, "  </head>\n");
+    _xmlNewChild3Prop(psMapMLHead, "link", NULL, "rel", "license", "href", pszVal1, "title", pszVal2);
 
-  msIO_fprintf(fp, "  <body>\n");
-  msIO_fprintf(fp, "    <extent units=\"%s\">\n", pszProjection);
+  /* *** mapml/body *** */
+
+  /* <extent> */
+  xmlNodePtr psMapMLExtent = _xmlNewChild1Prop(psMapMLBody, "extent", NULL, "units", pszProjection);
+
   if (EQUAL(pszService, "MAPMLTILE")) {
     // MAPML TILE mode: Serve requested layer as tiles using mode=tile&tilemode=gmap
     // TODO: is this use case valid only for the OSMTILE projection???
@@ -264,49 +335,85 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
     // Special case to map top-level map layer in WMS to special keyword "all" in mapserv CGI syntax
     if (map->name && EQUAL(map->name, pszLayer))
       pszLayer = "all";
-    
-    msIO_fprintf(fp, "      <input name=\"z\" type=\"zoom\" value=\"10\" min=\"4\" max=\"15\" />\n");
-    msIO_fprintf(fp, "      <input name=\"y\" type=\"location\" units=\"tilematrix\" axis=\"row\" min=\"0\" max=\"32768\" />\n");
-    msIO_fprintf(fp, "      <input name=\"x\" type=\"location\" units=\"tilematrix\" axis=\"column\" min=\"0\" max=\"32768\" />\n");
-    msIO_fprintf(fp, "      <link rel=\"tile\" tref=\"%smode=tile&amp;tilemode=gmap&amp;FORMAT=image/png&amp;LAYERS=%s&amp;tile={x}+{y}+{z}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer);
 
+    // TODO: map to real zoom/axis values here
+    psNode = _xmlNewChild2Prop(psMapMLExtent, "input", NULL, "name", "z", "type", "zoom");
+    _xmlNewPropInt(psNode, "value", 10);
+    _xmlNewPropInt(psNode, "min", 4);
+    _xmlNewPropInt(psNode, "max", 15);
+
+    psNode = _xmlNewChild4Prop(psMapMLExtent, "input", NULL, "name", "y", "type", "location", "units", "tilematrix", "axis", "row");
+    _xmlNewPropInt(psNode, "min", 0);
+    _xmlNewPropInt(psNode, "max", 32768);
+
+    psNode = _xmlNewChild4Prop(psMapMLExtent, "input", NULL, "name", "x", "type", "location", "units", "tilematrix", "axis", "column");
+    _xmlNewPropInt(psNode, "min", 0);
+    _xmlNewPropInt(psNode, "max", 32768);
+
+    pszVal1 = CPLSPrintf("%smode=tile&tilemode=gmap&FORMAT=image/png&LAYERS=%s&tile={x}+{y}+{z}&m4h=t", script_url, pszLayer);
+    psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "tile", "tref", pszVal1);
+    
   }
   else {
     // Default to WMS mode
-    msIO_fprintf(fp, "      <input name=\"w\" type=\"width\" />\n");
-    msIO_fprintf(fp, "      <input name=\"h\" type=\"height\" />\n");
-  
-    
-    msIO_fprintf(fp, "      <input name=\"xmin\" type=\"location\" units=\"pcrs\" position=\"top-left\" axis=\"easting\" min=\"%g\" max=\"%g\" />\n", ext.minx, ext.maxx);
-    msIO_fprintf(fp, "      <input name=\"ymin\" type=\"location\" units=\"pcrs\" position=\"bottom-left\" axis=\"northing\" min=\"%g\" max=\"%g\" />\n", ext.miny, ext.maxy);
-    msIO_fprintf(fp, "      <input name=\"xmax\" type=\"location\" units=\"pcrs\" position=\"top-right\" axis=\"easting\" min=\"%g\" max=\"%g\" />\n", ext.minx, ext.maxx);
-    msIO_fprintf(fp, "      <input name=\"ymax\" type=\"location\" units=\"pcrs\" position=\"top-left\" axis=\"northing\" min=\"%g\" max=\"%g\" />\n", ext.miny, ext.maxy);
+
+    _xmlNewChild2Prop(psMapMLExtent, "input", NULL, "name", "w", "type", "width");
+    _xmlNewChild2Prop(psMapMLExtent, "input", NULL, "name", "h", "type", "height");
+
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "xmin", "type", "location", "units", "pcrs", "position", "top-left", "axis", "easting");
+    _xmlNewPropDouble(psNode, "min", ext.minx);
+    _xmlNewPropDouble(psNode, "max", ext.maxx);
+
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "ymin", "type", "location", "units", "pcrs", "position", "bottom-left", "axis", "northing");
+    _xmlNewPropDouble(psNode, "min", ext.miny);
+    _xmlNewPropDouble(psNode, "max", ext.maxy);
+
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "xmax", "type", "location", "units", "pcrs", "position", "top-right", "axis", "easting");
+    _xmlNewPropDouble(psNode, "min", ext.minx);
+    _xmlNewPropDouble(psNode, "max", ext.maxx);
+
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "ymax", "type", "location", "units", "pcrs", "position", "top-left", "axis", "northing");
+    _xmlNewPropDouble(psNode, "min", ext.miny);
+    _xmlNewPropDouble(psNode, "max", ext.maxy);
 
     /* WMS BBOX format, coordinate default to X,Y, except for EPSG:4326 where it is lat,lon */
-    pszBBOX = "{xmin},{ymin},{xmax},{ymax}";
+    const char *pszBBOX = "{xmin},{ymin},{xmax},{ymax}";
     if (EQUAL(pszCRS, "EPSG:4326"))
       pszBBOX = "{ymin},{xmin},{ymax},{xmax}";
 
     /* GetMap URL */
     // TODO: Set proper output format and transparency... special metadata?
-    msIO_fprintf(fp, "      <link rel=\"image\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetMap&amp;FORMAT=image/png&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX=%s&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszCRS, pszBBOX);
+    pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&WIDTH={w}&HEIGHT={h}&CRS=%s&BBOX=%s&m4h=t", script_url, pszLayer, pszStyle, pszCRS, pszBBOX);
+    psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "image", "tref", pszVal1);
+
 
     /* If layer is queryable then enable GetFeatureInfo */
     // TODO Check if layer is queryable (also need to check top-level map, groups, nested groups)
     // TODO: Check if wms_getfeatureinfo_formatlist includes text/mapml */
-    msIO_fprintf(fp, "      <input name=\"i\" type=\"location\" axis=\"i\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
-    msIO_fprintf(fp, "      <input name=\"j\" type=\"location\" axis=\"j\" units=\"map\" min=\"0.0\" max=\"0.0\" />\n");
-    msIO_fprintf(fp, "      <link rel=\"query\" tref=\"%sSERVICE=WMS&amp;REQUEST=GetFeatureInfo&amp;INFO_FORMAT=text/mapml&amp;FEATURE_COUNT=1&amp;TRANSPARENT=TRUE&amp;STYLES=&amp;VERSION=1.3.0&amp;LAYERS=%s&amp;QUERY_LAYERS=%s&amp;WIDTH={w}&amp;HEIGHT={h}&amp;CRS=%s&amp;BBOX=%s&amp;x={i}&amp;y={j}&amp;m4h=t\"/>\n", script_url_encoded, pszLayer, pszLayer, pszCRS, pszBBOX);
+    // TODO: handle optional feature count
+    psNode = _xmlNewChild4Prop(psMapMLExtent, "input", NULL, "name", "i", "type", "location", "axis", "i", "units", "map");
+    _xmlNewPropInt(psNode, "min", 0);
+    _xmlNewPropInt(psNode, "max", 0);
+
+    psNode = _xmlNewChild4Prop(psMapMLExtent, "input", NULL, "name", "j", "type", "location", "axis", "j", "units", "map");
+    _xmlNewPropInt(psNode, "min", 0);
+    _xmlNewPropInt(psNode, "max", 0);
+
+    pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetFeatureInfo&INFO_FORMAT=text/mapml&FEATURE_COUNT=1&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&QUERY_LAYERS=%s&WIDTH={w}&HEIGHT={h}&CRS=%s&BBOX=%s&x={i}&y={j}&m4h=t", script_url, pszLayer, pszStyle, pszLayer, pszCRS, pszBBOX);
+    psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "query", "tref", pszVal1);
+
   }
   
-  msIO_fprintf(fp, "    </extent>\n");
-  msIO_fprintf(fp, "  </body>\n");
-  msIO_fprintf(fp, "</mapml>\n");
 
-  
+  /* Generate output */
+  msIO_setHeader("Content-Type","text/mapml");
+  msIO_sendHeaders();
+
+  _msIO_MapMLDump(fp, psMapMLDoc);
+ 
   /* Cleanup */
+  xmlFreeDoc(psMapMLDoc);
   msFree(script_url);
-  msFree(script_url_encoded);
   
   return MS_SUCCESS;
 #else
@@ -326,7 +433,7 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
 ** Returns MS_SUCCESS/MS_FAILURE
 */
 
-//TODO: Based on msGMLWriteQuery() but may be better handled using query templates??
+//TODO: This is just a temporary implementation derived from msGMLWriteQuery. It will be rewritten once the OGR/mapml driver is available
 
 int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
 {
@@ -364,8 +471,6 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
 
   msIO_fprintf(fp, "  <body>\n");
   msIO_fprintf(fp, "    <extent />\n");  // Mandatory extent element (empty)
-
-
 
   /* Look up map SRS. We need an EPSG code for GML, if not then we get null and we'll fall back on the layer's SRS */
   msOWSGetEPSGProj(&(map->projection), NULL, namespaces, MS_TRUE, &pszMapSRS);
@@ -443,7 +548,7 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
 #endif
 
         /* start this feature */
-        msIO_fprintf(fp, "      <feature id=\"%s.%d\" class=\"%s\">\n", layername, shape.index, layername);
+        msIO_fprintf(fp, "      <feature id=\"%s.%ld\" class=\"%s\">\n", layername, shape.index, layername);
 
         // TODO: handle geomeotry output...
         //
@@ -469,7 +574,7 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
         
         for(k=0; k<itemList->numitems; k++) {
           item = &(itemList->items[k]);
-          if(msItemInGroups(item->name, groupList) == MS_FALSE) {
+          if(item->visible && msItemInGroups(item->name, groupList) == MS_FALSE) {
             msIO_fprintf(fp, "            <tbody>\n");
             msIO_fprintf(fp, "              <tr>\n");
             msIO_fprintf(fp, "                <th scope=\"row\">%s</th>\n", item->name);

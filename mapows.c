@@ -944,6 +944,38 @@ const char *msOWSLookupMetadata2(hashTableObj *pri,
   return result;
 }
 
+/*
+** msOWSLookupMetadata3()
+**
+** Attempts to lookup a given metadata name in multiple hashTables, and
+** in multiple OWS namespaces within each. 
+** - First searches the primary table
+** - If no result is found, attempts the search using the secondary 
+**   (fallback) table if not NULL. 
+** - And if still not found then return the provided default value.
+**
+** 'namespaces' is a string with a letter for each namespace to lookup
+** in the order they should be looked up. e.g. "MO" to lookup wms_ and ows_
+** If namespaces is NULL then this function just does a regular metadata
+** lookup.
+*/
+const char *msOWSLookupMetadata3(hashTableObj *pri,
+                                 hashTableObj *sec,
+                                 const char *namespaces,
+                                 const char *name,
+                                 const char *pszDefault)
+{
+  const char *result;
+
+  if ((result = msOWSLookupMetadata(pri, namespaces, name)) == NULL) {
+    /* Try the secondary table if supplied */
+    if (sec == NULL ||
+        (result = msOWSLookupMetadata(sec, namespaces, name)) == NULL)
+      result = pszDefault;  /* Not found, fallback on provided default */
+  }
+
+  return result;
+}
 
 /* msOWSParseVersionString()
 **

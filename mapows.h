@@ -149,6 +149,11 @@ MS_DLL_EXPORT const char * msOWSLookupMetadata2(hashTableObj *pri,
     hashTableObj *sec,
     const char *namespaces,
     const char *name);
+MS_DLL_EXPORT const char * msOWSLookupMetadata3(hashTableObj *pri,
+                                                hashTableObj *sec,
+                                                const char *namespaces,
+                                                const char *name,
+                                                const char *pszDefault);
     
 void msOWSInitRequestObj(owsRequestObj *ows_request);
 void msOWSClearRequestObj(owsRequestObj *ows_request);
