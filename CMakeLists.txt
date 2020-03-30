@@ -141,7 +141,7 @@ option(WITH_PROTOBUFC "Choose if protocol buffers support should be built in (re
 option(WITH_KML "Enable native KML output support (requires libxml2 support)" OFF)
 option(WITH_SOS "Enable SOS Server support (requires PROJ and libxml2 support)" OFF)
 option(WITH_WMS "Enable WMS Server support (requires proj support)" ON)
-option(WITH_MAPML "Enable MapML output support (requires PROJ and WMS support)" OFF)
+option(WITH_MAPML "Enable MapML output support (requires PROJ and WMS support)" ON)
 option(WITH_FRIBIDI "Choose if FriBidi glyph shaping support should be built in (usefull for right-to-left languages) (requires HARFBUZZ)" ON)
 option(WITH_HARFBUZZ "Choose if Harfbuzz complex text layout should be included (needed for e.g. arabic and hindi) (requires FRIBIDI)" ON)
 option(WITH_ICONV "Choose if Iconv Internationalization support should be built in" ON)
