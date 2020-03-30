@@ -3277,6 +3277,14 @@ int msWMSGetCapabilities(mapObj *map, int nVersion, cgiRequestObj *req, owsReque
         }
       }
     }
+
+#ifdef USE_MAPML
+    if (msOWSRequestIsEnabled(map, NULL, "M", "GetMapML", MS_FALSE))
+      msWMSPrintRequestCap(nVersion, "GetMapML", script_url_encoded,
+                           "text/mapml", NULL );
+#endif
+
+    
   }
 
   msIO_printf("  </Request>\n");

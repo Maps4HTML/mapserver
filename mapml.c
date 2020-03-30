@@ -121,6 +121,48 @@ static void _xmlNewPropDouble(xmlNodePtr _node, const char *prop1, double value1
   xmlNewProp(_node, BAD_CAST prop1, BAD_CAST CPLSPrintf("%g", value1));
 }
 
+
+/*
+ * Map MapML Projection name to EPSG CRS codes.
+ *
+ * Returns corresponding EPSG/CRS code or
+ * Returns NULL if projection is invalid or not enabled.
+ *
+ * Set bQuietMode = TRUE to silently return NULL if SRS not enabled.
+ * Set bQuietMode = FALSE to produce an error if SRS is not enabled
+ */
+static const char * msIsMapMLProjectionEnabled(mapObj *map, layerObj *lp, const char *pszNamespaces, const char *pszProjection, int bQuietMode)
+{
+  const char *pszCRS=NULL;
+  
+  /* Validate PROJECTION and map it to WMS CRS */
+  if (pszProjection && strcasecmp(pszProjection, "OSMTILE") == 0)
+    pszCRS = "EPSG:3857";  // Web Mercator
+  else if (pszProjection && strcasecmp(pszProjection, "CBMTILE") == 0)
+    pszCRS = "EPSG:3978";  // Canada LCC
+  else if (pszProjection && strcasecmp(pszProjection, "APSTILE") == 0)
+    pszCRS = "EPSG:5936";  // Alaska Polar Stereographic
+  else if (pszProjection && strcasecmp(pszProjection, "WGS84-4326") == 0) {
+    pszCRS = "EPSG:4326";
+  }
+  else if (pszProjection && strcasecmp(pszProjection, "WGS84") == 0) {
+    pszCRS = "CRS:84";
+  }
+  else {
+    msSetError(MS_WMSERR, "Invalid PROJECTION parameter", "msMapMLProjection2EPSG()");
+    return NULL;
+  }
+
+  if (!msOWSIsCRSValid2(map, lp, pszNamespaces, pszCRS)) {
+    if (!bQuietMode)
+      msSetError(MS_WMSERR, "PROJECTION %s requires CRS %s to be enabled for this layer.", "msMapMLProjection2EPSG()", pszProjection, pszCRS);
+    return NULL;
+  }
+
+  return pszCRS;
+}
+
+
 /*
 ** msMapMLException()
 **
@@ -154,10 +196,13 @@ int msMapMLException(mapObj *map, const char *exception_code)
 **
 ** URL Parameters:
 **  MAP=...
+**  SERVICE=WMS (only WMS supported for now)
 **  REQUEST=GetMapML
 **  LAYER=...
+**  STYLE=...
 **  PROJECTION= one of OSMTILE, CBMTILE, APSTILE, WGS84
 **              defaults to OSMTILE if not specified (as per spec)
+**  MAPML_MODE= image (default) or tile or cgitile or features
 **
 **
 ** Returns MS_SUCCESS/MS_FAILURE
@@ -174,18 +219,20 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
   int *numNestedGroups = NULL;
   int *isUsedInNestedGroup = NULL;
 
-  char *pszProjection = "OSMTILE", *pszCRS=NULL;
+  const char *pszProjection = "OSMTILE", *pszCRS=NULL;
   char *script_url = NULL;
   const char *pszVal1=NULL, *pszVal2=NULL;
 
   const char *pszEncoding = "UTF-8";
+  const char *pszNamespaces = "MO";
+  const char *pszMapMLMode = NULL;
   
   projectionObj proj;
   rectObj ext;
   
   /* We need this server's onlineresource. It will come with the trailing "?" or "&" */
   /* the returned string should be freed once we're done with it. */
-  if ((script_url=msOWSGetOnlineResource(map, "MO", "onlineresource", req)) == NULL)  {
+  if ((script_url=msOWSGetOnlineResource(map, pszNamespaces, "onlineresource", req)) == NULL)  {
     msSetError(MS_WMSERR, "Missing OnlineResource.", "msWriteMapMLLayer()");
     return MS_FAILURE;
   }
@@ -204,6 +251,10 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
     if(strcasecmp(req->ParamNames[i], "STYLE") == 0) {
       // TODO ideally we should validate that supplied style exists, see mapwms.c
       pszStyle = req->ParamValues[i];
+    }
+    
+    if(strcasecmp(req->ParamNames[i], "MAPML_MODE") == 0) {
+      pszMapMLMode = req->ParamValues[i];
     }
   }
 
@@ -250,29 +301,10 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
 this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
     return MS_FAILURE;
   }
-
-  /* Validate PROJECTION and map it to WMS CRS */
-  if (pszProjection && strcasecmp(pszProjection, "OSMTILE") == 0)
-    pszCRS = "EPSG:3857";  // Web Mercator
-  else if (pszProjection && strcasecmp(pszProjection, "CBMTILE") == 0)
-    pszCRS = "EPSG:3978";  // Canada LCC
-  else if (pszProjection && strcasecmp(pszProjection, "APSTILE") == 0)
-    pszCRS = "EPSG:5936";  // Alaska Polar Stereographic
-  else if (pszProjection && strcasecmp(pszProjection, "WGS84-4326") == 0) {
-    pszCRS = "EPSG:4326";
-  }
-  else if (pszProjection && strcasecmp(pszProjection, "WGS84") == 0) {
-    pszCRS = "CRS:84";
-  }
-  else {
-    msSetError(MS_WMSERR, "Invalid PROJECTION parameter", "msWriteMapMLLayer()");
-    return MS_FAILURE;
-  }
-
-  if (!msOWSIsCRSValid2(map, lp, "MO", pszCRS)) {
-    msSetError(MS_WMSERR, "PROJECTION %s requires CRS %s to be valid for this layer.", "msWriteMapMLLayer()", pszProjection, pszCRS);
-    return MS_FAILURE;
-  }
+  
+  /* Validate MapML PROJECTION and map it to WMS CRS (EPSG code) */
+  if ((pszCRS = msIsMapMLProjectionEnabled(map, lp, pszNamespaces, pszProjection, FALSE)) == NULL)
+    return MS_FAILURE; // msSetError already called
 
   /* Fetch and reproject layer extent to requested CRS */
   // TODO: For now just using map extent... need to look up layer/group extent if applicable
@@ -304,9 +336,9 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
   
   /* <title>: If LAYER name is the top-level map then return map title, otherwise return the first matching layer's title */
   if (map->name && EQUAL(map->name, pszLayer))
-    pszVal1 = msOWSLookupMetadata3( &(map->web.metadata), NULL, "MO", "title", map->name );
+    pszVal1 = msOWSLookupMetadata3( &(map->web.metadata), NULL, pszNamespaces, "title", map->name );
   else
-    pszVal1 = msOWSLookupMetadata3( &(lp->metadata), NULL, "MO", "title", lp->name );
+    pszVal1 = msOWSLookupMetadata3( &(lp->metadata), NULL, pszNamespaces, "title", lp->name );
   
   if (pszVal1)
     psNode = xmlNewChild(psMapMLHead, NULL, BAD_CAST "title", BAD_CAST pszVal1);
@@ -317,19 +349,79 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
   _xmlNewChild2Prop(psMapMLHead, "meta", NULL, "http-equiv", "Content-Type",
                     "content", CPLSPrintf("text/mapml;projection=%s", pszProjection) );
 
-  /* link rel-license - mapped to *_attribution_* metadata */
-  pszVal1 = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), "MO", "attribution_onlineresource" );
-  pszVal2 = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), "MO", "attribution_title" );
+  /* link rel=license - mapped to *_attribution_* metadata */
+  pszVal1 = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), pszNamespaces, "attribution_onlineresource" );
+  pszVal2 = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), pszNamespaces, "attribution_title" );
   if (pszVal1 || pszVal2)
     _xmlNewChild3Prop(psMapMLHead, "link", NULL, "rel", "license", "href", pszVal1, "title", pszVal2);
 
+  /* link rel=legend  */
+  pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetLegendGraphic&VERSION=1.3.0&FORMAT=image/png&LAYER=%s&STYLE=%s&SLD_VERSION=1.1.0", script_url, pszLayer, pszStyle);
+  _xmlNewChild2Prop(psMapMLHead, "link", NULL, "rel", "legend", "href", pszVal1);
+
+  /* link rel=alternate projection */
+  const char *papszAllProj[] = {"OSMTILE", "CBMTILE", "APSTILE", "WGS84", NULL};
+  const char *pszProj = *papszAllProj;
+  for (int i=0; (pszProj=papszAllProj[i])!= NULL; i++) {
+    if (!EQUAL(pszProjection, pszProj) &&
+        msIsMapMLProjectionEnabled(map, lp, pszNamespaces, pszProj, TRUE) != NULL) {
+      pszVal1 = CPLSPrintf("%sSERVICE=%s&REQUEST=GetMapML&LAYER=%s&STYLE=%s&PROJECTION=%s", script_url, pszService, pszLayer, pszStyle, pszProj);
+      _xmlNewChild3Prop(psMapMLHead, "link", NULL, "rel", "alternate", "projection", pszProj, "href", pszVal1);
+    }
+  }
+  
+
   /* *** mapml/body *** */
 
+  /* What type of output do we want, controlled by mapml_wms_mode metadata, or request MAPML_MODE param 
+   *  - image: (the default) produces full page WMS GetMap images
+   *  - tile: produces link-rel = tile with tiled WMS GetMap requests
+   *  - cgitile: produces mode=tile mapserv CGI requests
+   *  - features: produces link-ref=features pointing to WFS GetFeature 
+   */
+  if (pszMapMLMode == NULL)
+    pszMapMLMode = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), NULL, "mapml_wms_mode" );
+  if (pszMapMLMode == NULL)
+    pszMapMLMode = "image"; // The default
+  
   /* <extent> */
   xmlNodePtr psMapMLExtent = _xmlNewChild1Prop(psMapMLBody, "extent", NULL, "units", pszProjection);
 
-  if (EQUAL(pszService, "MAPMLTILE")) {
-    // MAPML TILE mode: Serve requested layer as tiles using mode=tile&tilemode=gmap
+  if (EQUAL(pszMapMLMode, "tile")) {
+    // MAPML TILE mode: Serve requested layer as tiled WMS GetMap requests
+    // TODO: Should we allow this mode with WGS84?
+    
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "txmin", "type", "location", "units", "tilematrix", "position", "top-left", "axis", "easting");
+    _xmlNewPropDouble(psNode, "min", ext.minx);
+    _xmlNewPropDouble(psNode, "max", ext.maxx);
+
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "tymin", "type", "location", "units", "tilematrix", "position", "bottom-left", "axis", "northing");
+    _xmlNewPropDouble(psNode, "min", ext.miny);
+    _xmlNewPropDouble(psNode, "max", ext.maxy);
+
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "txmax", "type", "location", "units", "tilematrix", "position", "top-right", "axis", "easting");
+    _xmlNewPropDouble(psNode, "min", ext.minx);
+    _xmlNewPropDouble(psNode, "max", ext.maxx);
+
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "tymax", "type", "location", "units", "tilematrix", "position", "top-left", "axis", "northing");
+    _xmlNewPropDouble(psNode, "min", ext.miny);
+    _xmlNewPropDouble(psNode, "max", ext.maxy);
+
+    /* WMS BBOX format, coordinate default to X,Y, except for EPSG:4326 where it is lat,lon */
+    const char *pszBBOX = "{txmin},{tymin},{txmax},{tymax}";
+    if (EQUAL(pszCRS, "EPSG:4326"))
+      pszBBOX = "{tymin},{txmin},{tymax},{txmax}";
+
+    /* GetMap URL */
+    // TODO: Set proper output format and transparency... special metadata?
+    pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&WIDTH=256&HEIGHT=256&CRS=%s&BBOX=%s&m4h=t", script_url, pszLayer, pszStyle, pszCRS, pszBBOX);
+    psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "tile", "tref", pszVal1);
+
+    // TODO: Add WMS GetFeatureInfo (share code with "image" case)
+    
+  }
+  else if (EQUAL(pszMapMLMode, "cgitile")) {
+    // MAPML CGITILE mode: Serve requested layer as tiles using mapserv CGI mode=tile&tilemode=gmap
     // TODO: is this use case valid only for the OSMTILE projection???
     
     // Special case to map top-level map layer in WMS to special keyword "all" in mapserv CGI syntax
@@ -354,8 +446,8 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
     psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "tile", "tref", pszVal1);
     
   }
-  else {
-    // Default to WMS mode
+  else if (EQUAL(pszMapMLMode, "image")) {
+    // Produce full screen WMS GetMap requests
 
     _xmlNewChild2Prop(psMapMLExtent, "input", NULL, "name", "w", "type", "width");
     _xmlNewChild2Prop(psMapMLExtent, "input", NULL, "name", "h", "type", "height");
@@ -402,6 +494,16 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
     pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetFeatureInfo&INFO_FORMAT=text/mapml&FEATURE_COUNT=1&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&QUERY_LAYERS=%s&WIDTH={w}&HEIGHT={h}&CRS=%s&BBOX=%s&x={i}&y={j}&m4h=t", script_url, pszLayer, pszStyle, pszLayer, pszCRS, pszBBOX);
     psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "query", "tref", pszVal1);
 
+  }
+  else if (EQUAL(pszMapMLMode, "features")) {
+    // MAPML FEATURES mode: Serve link to WFS GetFeature requests
+    
+    // TODO: WFS GetFeature not available yet
+    
+  }
+   else {
+    msSetError(MS_WMSERR, "Requested MapML output mode not supported. Use one of image, tile, cgitile or features.", "msWriteMapMLLayer()");
+    return msMapMLException(map, "InvalidRequest");
   }
   
 
