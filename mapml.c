@@ -64,7 +64,9 @@ static int _msIO_MapMLDump(FILE *fp, xmlDocPtr psDoc)
   return status;
 }
 
-/* A couple of useful XML-generation shortcuts */
+/* 
+ * A couple of useful XML-generation shortcuts (libxml2 wrappers)
+ */
 
 static xmlNodePtr _xmlNewChild1Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1)
 {
@@ -160,6 +162,31 @@ static const char * msIsMapMLProjectionEnabled(mapObj *map, layerObj *lp, const 
   }
 
   return pszCRS;
+}
+
+/*
+ * Return list of styles for selected layer as a CPL StringList The
+ * list of styles is actually the list of class group names.  
+ * Returns a CSL string list that should be freed by the caller or NULL if no
+ * class name found (i.e. just one default style applies)
+ *
+ * Note: This works only for a single layer and won't work for grouped layers
+ * at the moment.
+ *
+ * Note: Should probably be moved to mapwms.c with a refactoring of
+ * WMS code to reuse it.
+ */
+static char **msWMSGetStyleList(layerObj *lp)
+{
+  char **papszStyles = NULL;
+  
+  for (int i=0; i<lp->numclasses; i++) {
+    if (lp->class[i]->group &&
+        CSLFindString(papszStyles, lp->class[i]->group) == -1)
+      papszStyles = CSLAddString(papszStyles, lp->class[i]->group);
+  }
+
+  return papszStyles;
 }
 
 
@@ -362,7 +389,7 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
 
   /* link rel=alternate projection */
   const char *papszAllProj[] = {"OSMTILE", "CBMTILE", "APSTILE", "WGS84", NULL};
-  const char *pszProj = *papszAllProj;
+  const char *pszProj;
   for (int i=0; (pszProj=papszAllProj[i])!= NULL; i++) {
     if (!EQUAL(pszProjection, pszProj) &&
         msIsMapMLProjectionEnabled(map, lp, pszNamespaces, pszProj, TRUE) != NULL) {
@@ -371,7 +398,19 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
     }
   }
   
-
+  /* link rel=style / self style */
+  /* Works only in the single-layer / single-style case at the moment */
+  char **papszStyles = msWMSGetStyleList(lp);
+  const char *pszAltStyle;
+  for (int i=0; papszStyles && (pszAltStyle=papszStyles[i])!= NULL; i++) {
+    pszVal1 = CPLSPrintf("%sSERVICE=%s&REQUEST=GetMapML&LAYER=%s&STYLE=%s&PROJECTION=%s", script_url, pszService, pszLayer, pszAltStyle, pszProjection);
+    if (EQUAL(pszAltStyle, pszStyle))
+      _xmlNewChild3Prop(psMapMLHead, "link", NULL, "rel", "self style", "title", pszAltStyle, "href", pszVal1);
+    else
+      _xmlNewChild3Prop(psMapMLHead, "link", NULL, "rel", "style", "title", pszAltStyle, "href", pszVal1);
+  }
+  CSLDestroy(papszStyles);
+  
   /* *** mapml/body *** */
 
   /* What type of output do we want, controlled by mapml_link_mode metadata, or request MAPML_LINK_MODE param 
