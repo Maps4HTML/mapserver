@@ -1,0 +1,19 @@
+<mapml>
+  <head>
+    <title>province</title>
+    <meta charset="UTF-8"/>
+    <meta http-equiv="Content-Type" content="text/mapml;projection=OSMTILE"/>
+    <link rel="license" href="http://some.host.com/attribution.html" title="MapServer MapML Attribution Here"/>
+    <link rel="legend" href="http://localhost/path/to/mapml?SERVICE=WMS&amp;REQUEST=GetLegendGraphic&amp;VERSION=1.3.0&amp;FORMAT=image/png&amp;LAYER=province&amp;STYLE=&amp;SLD_VERSION=1.1.0"/>
+    <link rel="alternate" projection="CBMTILE" href="http://localhost/path/to/mapml?SERVICE=WMS&amp;REQUEST=GetMapML&amp;LAYER=province&amp;STYLE=&amp;PROJECTION=CBMTILE"/>
+    <link rel="alternate" projection="WGS84" href="http://localhost/path/to/mapml?SERVICE=WMS&amp;REQUEST=GetMapML&amp;LAYER=province&amp;STYLE=&amp;PROJECTION=WGS84"/>
+  </head>
+  <body>
+    <extent units="OSMTILE">
+      <input name="z" type="zoom" value="10" min="4" max="15"/>
+      <input name="y" type="location" units="tilematrix" axis="row" min="0" max="32768"/>
+      <input name="x" type="location" units="tilematrix" axis="column" min="0" max="32768"/>
+      <link rel="tile" tref="http://localhost/path/to/mapml?mode=tile&amp;tilemode=gmap&amp;FORMAT=image/png&amp;LAYERS=province&amp;tile={x}+{y}+{z}&amp;m4h=t"/>
+    </extent>
+  </body>
+</mapml>

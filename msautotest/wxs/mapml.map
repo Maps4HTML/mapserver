@@ -1,0 +1,166 @@
+#
+# Test MapML Support (RFC-123)
+#
+# REQUIRES: INPUT=GDAL OUTPUT=PNG SUPPORTS=WMS
+#
+#
+#
+# RUN_PARMS: mapml_getcapabilities.xml [MAPSERV] QUERY_STRING="map=[MAPFILE]&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities" > [RESULT_DEVERSION]
+#
+#
+# Test projections
+#
+# RUN_PARMS: mapml_getmapl_osmtile.xml [MAPSERV] QUERY_STRING="map=[MAPFILE]&SERVICE=WMS&REQUEST=GetMapML&LAYER=province&PROJECTION=OSMTILE" > [RESULT_DEMIME]
+#
+# RUN_PARMS: mapml_getmapl_cbmtile.xml [MAPSERV] QUERY_STRING="map=[MAPFILE]&SERVICE=WMS&REQUEST=GetMapML&LAYER=province&PROJECTION=CBMTILE" > [RESULT_DEMIME]
+#
+# RUN_PARMS: mapml_getmapl_wgs84.xml [MAPSERV] QUERY_STRING="map=[MAPFILE]&SERVICE=WMS&REQUEST=GetMapML&LAYER=province&PROJECTION=WGS84" > [RESULT_DEMIME]
+#
+#
+# Test the various mapml_link_mode outputs
+#
+# RUN_PARMS: mapml_getmapl_wms_image.xml [MAPSERV] QUERY_STRING="map=[MAPFILE]&SERVICE=WMS&REQUEST=GetMapML&LAYER=province&PROJECTION=OSMTILE&MAPML_LINK_MODE=image" > [RESULT_DEMIME]
+#
+# RUN_PARMS: mapml_getmapl_wms_tile.xml [MAPSERV] QUERY_STRING="map=[MAPFILE]&SERVICE=WMS&REQUEST=GetMapML&LAYER=province&PROJECTION=OSMTILE&MAPML_LINK_MODE=tile" > [RESULT_DEMIME]
+#
+# RUN_PARMS: mapml_getmapl_wms_cgitile.xml [MAPSERV] QUERY_STRING="map=[MAPFILE]&SERVICE=WMS&REQUEST=GetMapML&LAYER=province&PROJECTION=OSMTILE&MAPML_LINK_MODE=cgitile" > [RESULT_DEMIME]
+#
+#
+# This one tests "mapml_link_mode" and "mapml_wms_image_format" metadata an default PROJECTION
+#
+# RUN_PARMS: mapml_getmapl_defaults.xml [MAPSERV] QUERY_STRING="map=[MAPFILE]&SERVICE=WMS&REQUEST=GetMapML&LAYER=popplace" > [RESULT_DEMIME]
+#
+#
+
+MAP
+
+NAME WMS_MAPML
+STATUS ON
+SIZE 400 300
+EXTENT -67.5725 42 -58.9275 48.5
+UNITS DD
+IMAGECOLOR 255 255 255
+SHAPEPATH ./data
+SYMBOLSET etc/symbols.sym
+FONTSET etc/fonts.txt
+#
+# Start of web interface definition
+#
+WEB
+
+ IMAGEPATH "/tmp/ms_tmp/"
+ IMAGEURL "/ms_tmp/"
+
+  METADATA
+    "wms_title"		   "Test MapML"
+    "wms_onlineresource"   "http://localhost/path/to/mapml?"
+    "wms_srs"		   "EPSG:3978 EPSG:3857 EPSG:4269 EPSG:4326"
+    "ows_enable_request"   "*" 
+    "wms_getfeatureinfo_formatlist" "text/plain,text/mapml"
+    "wms_attribution_onlineresource" "http://some.host.com/attribution.html"
+    "wms_attribution_title"          "MapServer MapML Attribution Here"
+  END
+END
+
+PROJECTION
+   "init=epsg:4326"
+END
+
+
+#
+# Start of layer definitions
+#
+
+LAYER
+  NAME province
+  DATA province
+  GROUP feature_group
+  METADATA
+    "wms_title"         "province"
+    "wms_group_title"   "Feature Group"
+    "wms_description"   "province"
+    "wms_result_fields" "NAME_E YEAR_EST AREA_KMSQ"
+  END
+  TYPE POLYGON
+  STATUS ON
+  PROJECTION
+    "init=epsg:3978"
+  END
+
+  DUMP TRUE
+  CLASSITEM "Name_e"
+
+  CLASS
+    NAME "Province"
+    COLOR 200 255 0
+    OUTLINECOLOR 120 120 120
+  END
+END # Layer
+
+
+LAYER
+  NAME popplace
+  DATA popplace
+  GROUP feature_group
+  METADATA
+    "wms_title"         "popplace"
+    "wms_description"   "Cities of I.P.E."
+    "wms_result_fields" "NAME"
+    "gml_NAME_alias"    "NAME_ALIAS"
+    "mapml_link_mode"   "tile"
+    "mapml_wms_image_format" "image/jpeg"
+  END
+  TYPE POINT
+  STATUS ON
+  PROJECTION
+    "init=epsg:3978"
+  END
+
+  DUMP TRUE
+  LabelItem "Name"
+  CLASSITEM "Capital" 
+
+  CLASS
+    EXPRESSION /./  
+    SYMBOL 2
+    SIZE 8
+    NAME "Cities"
+    LABEL
+      COLOR  0 0 0
+      FONT Vera
+      TYPE truetype
+      SIZE 8
+      POSITION AUTO			
+      PARTIALS FALSE
+      OUTLINECOLOR 255 255 255			
+    END 
+    COLOR 0 0 0
+  END
+END # Layer
+
+LAYER
+  NAME road
+  DATA road
+  METADATA
+    "wms_title"       "road"
+    "wms_description" "Roads of I.P.E."
+    "wfs_use_default_extent_for_getfeature" "false"
+  END
+  TYPE LINE
+  STATUS ON
+  PROJECTION
+    "init=epsg:3978"
+  END
+
+  DUMP TRUE
+
+  CLASSITEM "Name_e"
+  CLASS
+    NAME "Roads"
+    SYMBOL 0 
+    COLOR 220 0 0
+  END
+END # Layer
+
+
+END # Map File
