@@ -142,11 +142,11 @@ static const char * msIsMapMLProjectionEnabled(mapObj *map, layerObj *lp, const 
     pszCRS = "EPSG:3978";  // Canada LCC
   else if (pszProjection && strcasecmp(pszProjection, "APSTILE") == 0)
     pszCRS = "EPSG:5936";  // Alaska Polar Stereographic
-  else if (pszProjection && strcasecmp(pszProjection, "WGS84-4326") == 0) {
-    pszCRS = "EPSG:4326";
-  }
   else if (pszProjection && strcasecmp(pszProjection, "WGS84") == 0) {
-    pszCRS = "CRS:84";
+    if (msOWSIsCRSValid2(map, lp, pszNamespaces, "CRS:84"))
+      pszCRS = "CRS:84";
+    else
+      pszCRS = "EPSG:4326";
   }
   else {
     msSetError(MS_WMSERR, "Invalid PROJECTION parameter", "msMapMLProjection2EPSG()");
@@ -226,7 +226,8 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
   const char *pszEncoding = "UTF-8";
   const char *pszNamespaces = "MO";
   const char *pszMapMLMode = NULL;
-  
+  const char *pszImageFormat = NULL;
+
   projectionObj proj;
   rectObj ext;
   
@@ -253,7 +254,7 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
       pszStyle = req->ParamValues[i];
     }
     
-    if(strcasecmp(req->ParamNames[i], "MAPML_MODE") == 0) {
+    if(strcasecmp(req->ParamNames[i], "MAPML_LINK_MODE") == 0) {
       pszMapMLMode = req->ParamValues[i];
     }
   }
@@ -373,17 +374,22 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
 
   /* *** mapml/body *** */
 
-  /* What type of output do we want, controlled by mapml_wms_mode metadata, or request MAPML_MODE param 
+  /* What type of output do we want, controlled by mapml_link_mode metadata, or request MAPML_LINK_MODE param 
    *  - image: (the default) produces full page WMS GetMap images
    *  - tile: produces link-rel = tile with tiled WMS GetMap requests
    *  - cgitile: produces mode=tile mapserv CGI requests
    *  - features: produces link-ref=features pointing to WFS GetFeature 
    */
   if (pszMapMLMode == NULL)
-    pszMapMLMode = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), NULL, "mapml_wms_mode" );
+    pszMapMLMode = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), NULL, "mapml_link_mode" );
   if (pszMapMLMode == NULL)
     pszMapMLMode = "image"; // The default
-  
+
+  /* Check for preferred image format */
+  pszImageFormat = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), NULL, "mapml_wms_image_format" );
+  if (pszImageFormat == NULL)
+    pszImageFormat = "image/png";
+    
   /* <extent> */
   xmlNodePtr psMapMLExtent = _xmlNewChild1Prop(psMapMLBody, "extent", NULL, "units", pszProjection);
 
@@ -413,8 +419,7 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
       pszBBOX = "{tymin},{txmin},{tymax},{txmax}";
 
     /* GetMap URL */
-    // TODO: Set proper output format and transparency... special metadata?
-    pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&WIDTH=256&HEIGHT=256&CRS=%s&BBOX=%s&m4h=t", script_url, pszLayer, pszStyle, pszCRS, pszBBOX);
+    pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetMap&FORMAT=%s&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&WIDTH=256&HEIGHT=256&CRS=%s&BBOX=%s&m4h=t", script_url, pszImageFormat, pszLayer, pszStyle, pszCRS, pszBBOX);
     psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "tile", "tref", pszVal1);
 
     // TODO: Add WMS GetFeatureInfo (share code with "image" case)
@@ -442,7 +447,7 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
     _xmlNewPropInt(psNode, "min", 0);
     _xmlNewPropInt(psNode, "max", 32768);
 
-    pszVal1 = CPLSPrintf("%smode=tile&tilemode=gmap&FORMAT=image/png&LAYERS=%s&tile={x}+{y}+{z}&m4h=t", script_url, pszLayer);
+    pszVal1 = CPLSPrintf("%smode=tile&tilemode=gmap&FORMAT=%s&LAYERS=%s&tile={x}+{y}+{z}&m4h=t", script_url, pszImageFormat, pszLayer);
     psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "tile", "tref", pszVal1);
     
   }
@@ -474,8 +479,7 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
       pszBBOX = "{ymin},{xmin},{ymax},{xmax}";
 
     /* GetMap URL */
-    // TODO: Set proper output format and transparency... special metadata?
-    pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&WIDTH={w}&HEIGHT={h}&CRS=%s&BBOX=%s&m4h=t", script_url, pszLayer, pszStyle, pszCRS, pszBBOX);
+    pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetMap&FORMAT=%s&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&WIDTH={w}&HEIGHT={h}&CRS=%s&BBOX=%s&m4h=t", script_url, pszImageFormat, pszLayer, pszStyle, pszCRS, pszBBOX);
     psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "image", "tref", pszVal1);
 
 
@@ -728,60 +732,3 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
 }
 
 
-/*
-** msMapMLTileDispatch() is the entry point for MAPMLTILE requests.
-**
-** Note: MapServer does not really support MAPMLTILE.
-** This is only so that we can accept vendor-specific SERVICE=MAPMLTILE&REQUEST=GetMapML
-**
-** - If this is a valid request then it is processed and MS_SUCCESS is returned
-**   on success, or MS_FAILURE on failure.
-** - If this does not appear to be a valid WMTS request then MS_DONE
-**   is returned and MapServer is expected to process this as a regular
-**   MapServer request.
-*/
-int msMapMLTileDispatch(mapObj *map, cgiRequestObj *req, owsRequestObj *ows_request)
-{
-#ifdef USE_MAPML
-  int i;
-  const char *request=NULL, *service=NULL;
-
-  /*
-  ** Process Params
-  */
-  for(i=0; i<req->NumParams; i++) {
-    if (strcasecmp(req->ParamNames[i], "REQUEST") == 0)
-      request = req->ParamValues[i];
-    else if (strcasecmp(req->ParamNames[i], "SERVICE") == 0)
-      service = req->ParamValues[i];
-   }
-
-  /* If SERVICE is specified then it MUST be "MAPMLTILE" */
-  if (service != NULL && strcasecmp(service, "MAPMLTILE") != 0)
-    return MS_DONE;  /* Not a MAPMLTILE request */
-
-  /*
-  ** Dispatch request... 
-  */
-  if (request && strcasecmp(request, "GetMapML") == 0 ) {
-    /* Return a MapML document for specified LAYER and PROJECTION
-     * This is a vendor-specific extension, not a standard request.
-     */
-    msOWSRequestLayersEnabled(map, "MO", request, ows_request);
-    if ( msWriteMapMLLayer(stdout, map, req, ows_request, "MAPMLTILE") != MS_SUCCESS )
-      return msMapMLException(map, "InvalidRequest");
-    /* Request completed */
-    return MS_SUCCESS;
-  }
-  
-  /* Hummmm... incomplete or unsupported request */
-  if (service != NULL && strcasecmp(service, "MAPMLTILE") == 0) {
-    msSetError(MS_WMSERR, "Incomplete or unsupported MAPMLTILE request", "msMapMTileDispatch()");
-    return msMapMLException(map, "InvalidRequest");
-  } else
-    return MS_DONE;  /* Not a MAPMLTILE request */
-#else
-  msSetError(MS_WMSERR, "MAPMLTILE service support is not available.", "msMapMLTileDispatch()");
-  return(MS_FAILURE);
-#endif
-}

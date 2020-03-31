@@ -315,15 +315,6 @@ int msOWSDispatch(mapObj *map, cgiRequestObj *request, int ows_mode)
                 "SERVICE=SOS requested, but SOS support not configured in MapServer.",
                 "msOWSDispatch()" );
 #endif
-  } else if (EQUAL(ows_request.service, "MAPMLTILE")) {
-#ifdef USE_MAPML
-    // This is only so that we can accept vendor-specific SERVICE=MAPMLTILE&REQUEST=GetMapML for tile sources
-    status = msMapMLTileDispatch(map, request, &ows_request);
-#else
-    msSetError( MS_WMSERR,
-                "SERVICE=MAPMLTILE requested, but MAPMLTILE support not configured in MapServer.",
-                "msOWSDispatch()" );
-#endif
   } else if(force_ows_mode) {
     msSetError( MS_MISCERR,
                 "OWS Common exception: exceptionCode=InvalidParameterValue, locator=SERVICE, ExceptionText=SERVICE parameter value invalid.",
