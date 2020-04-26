@@ -552,6 +552,7 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
 
   /* Generate output */
   msIO_setHeader("Content-Type","text/mapml");
+  msIO_setHeader("Access-Control-Allow-Origin","*");
   msIO_sendHeaders();
 
   _msIO_MapMLDump(fp, psMapMLDoc);
@@ -602,6 +603,7 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
 
 
   msIO_setHeader("Content-Type","text/mapml");
+  msIO_setHeader("Access-Control-Allow-Origin","*");
   msIO_sendHeaders();
 
   msIO_fprintf(fp, "<mapml>\n");
