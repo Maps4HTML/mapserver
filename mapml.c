@@ -70,14 +70,14 @@ static int _msIO_MapMLDump(FILE *fp, xmlDocPtr psDoc)
 
 static xmlNodePtr _xmlNewChild1Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1)
 {
-  xmlNodePtr _node = xmlNewChild(parent_node, NULL, BAD_CAST node_name, BAD_CAST node_value);
+  xmlNodePtr _node = xmlNewChild(parent_node, pszNamespaces, BAD_CAST node_name, BAD_CAST node_value);
   if (value1) xmlNewProp(_node, BAD_CAST prop1, BAD_CAST value1);
   return _node;
 }
 
 static xmlNodePtr _xmlNewChild2Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1, const char *prop2, const char *value2)
 {
-  xmlNodePtr _node = xmlNewChild(parent_node, NULL, BAD_CAST node_name, BAD_CAST node_value);
+  xmlNodePtr _node = xmlNewChild(parent_node, pszNamespaces, BAD_CAST node_name, BAD_CAST node_value);
   if (value1) xmlNewProp(_node, BAD_CAST prop1, BAD_CAST value1);
   if (value2) xmlNewProp(_node, BAD_CAST prop2, BAD_CAST value2);
   return _node;
@@ -85,7 +85,7 @@ static xmlNodePtr _xmlNewChild2Prop(xmlNodePtr parent_node, const char *node_nam
 
 static xmlNodePtr _xmlNewChild3Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1, const char *prop2, const char *value2, const char *prop3, const char *value3)
 {
-  xmlNodePtr _node = xmlNewChild(parent_node, NULL, BAD_CAST node_name, BAD_CAST node_value);
+  xmlNodePtr _node = xmlNewChild(parent_node, pszNamespaces, BAD_CAST node_name, BAD_CAST node_value);
   if (value1) xmlNewProp(_node, BAD_CAST prop1, BAD_CAST value1);
   if (value2) xmlNewProp(_node, BAD_CAST prop2, BAD_CAST value2);
   if (value3) xmlNewProp(_node, BAD_CAST prop3, BAD_CAST value3);
@@ -94,7 +94,7 @@ static xmlNodePtr _xmlNewChild3Prop(xmlNodePtr parent_node, const char *node_nam
 
 static xmlNodePtr _xmlNewChild4Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1, const char *prop2, const char *value2, const char *prop3, const char *value3, const char *prop4, const char *value4)
 {
-  xmlNodePtr _node = xmlNewChild(parent_node, NULL, BAD_CAST node_name, BAD_CAST node_value);
+  xmlNodePtr _node = xmlNewChild(parent_node, pszNamespaces, BAD_CAST node_name, BAD_CAST node_value);
   if (value1) xmlNewProp(_node, BAD_CAST prop1, BAD_CAST value1);
   if (value2) xmlNewProp(_node, BAD_CAST prop2, BAD_CAST value2);
   if (value3) xmlNewProp(_node, BAD_CAST prop3, BAD_CAST value3);
@@ -104,7 +104,7 @@ static xmlNodePtr _xmlNewChild4Prop(xmlNodePtr parent_node, const char *node_nam
 
 static xmlNodePtr _xmlNewChild5Prop(xmlNodePtr parent_node, const char *node_name, const char *node_value, const char *prop1, const char *value1, const char *prop2, const char *value2, const char *prop3, const char *value3, const char *prop4, const char *value4, const char *prop5, const char *value5)
 {
-  xmlNodePtr _node = xmlNewChild(parent_node, NULL, BAD_CAST node_name, BAD_CAST node_value);
+  xmlNodePtr _node = xmlNewChild(parent_node, pszNamespaces, BAD_CAST node_name, BAD_CAST node_value);
   if (value1) xmlNewProp(_node, BAD_CAST prop1, BAD_CAST value1);
   if (value2) xmlNewProp(_node, BAD_CAST prop2, BAD_CAST value2);
   if (value3) xmlNewProp(_node, BAD_CAST prop3, BAD_CAST value3);
@@ -251,7 +251,7 @@ int msWriteMapMLLayer(FILE *fp, mapObj *map, cgiRequestObj *req, owsRequestObj *
   const char *pszVal1=NULL, *pszVal2=NULL;
 
   const char *pszEncoding = "UTF-8";
-  const char *pszNamespaces = "MO";
+  const char *pszNamespaces = "http://www.w3.org/1999/xhtml";
   const char *pszMapMLMode = NULL;
   const char *pszImageFormat = NULL;
 
@@ -354,38 +354,38 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
   xmlNodePtr root_node = NULL, psMapMLHead = NULL, psMapMLBody = NULL, psNode = NULL;
 
   psMapMLDoc = xmlNewDoc(BAD_CAST "1.0");
-  root_node = xmlNewNode(NULL, BAD_CAST "mapml");
+  root_node = xmlNewNode(pszNamespaces, BAD_CAST "mapml-");
   xmlDocSetRootElement(psMapMLDoc, root_node);
 
-  psMapMLHead = xmlNewChild(root_node, NULL, BAD_CAST "head", NULL);
-  psMapMLBody = xmlNewChild(root_node, NULL, BAD_CAST "body", NULL);
+  psMapMLHead = xmlNewChild(root_node, pszNamespaces, BAD_CAST "map-head", NULL);
+  psMapMLBody = xmlNewChild(root_node, pszNamespaces, BAD_CAST "map-body", NULL);
 
   /* *** mapmp/head *** */
   
   /* <title>: If LAYER name is the top-level map then return map title, otherwise return the first matching layer's title */
   if (map->name && EQUAL(map->name, pszLayer))
-    pszVal1 = msOWSLookupMetadata3( &(map->web.metadata), NULL, pszNamespaces, "title", map->name );
+    pszVal1 = msOWSLookupMetadata3( &(map->web.metadata), NULL, pszNamespaces, "map-title", map->name );
   else
-    pszVal1 = msOWSLookupMetadata3( &(lp->metadata), NULL, pszNamespaces, "title", lp->name );
+    pszVal1 = msOWSLookupMetadata3( &(lp->metadata), NULL, pszNamespaces, "map-title", lp->name );
   
   if (pszVal1)
-    psNode = xmlNewChild(psMapMLHead, NULL, BAD_CAST "title", BAD_CAST pszVal1);
+    psNode = xmlNewChild(psMapMLHead, pszNamespaces, BAD_CAST "map-title", BAD_CAST pszVal1);
 
   /* <meta> */
-  _xmlNewChild1Prop(psMapMLHead, "meta", NULL, "charset", pszEncoding);
+  _xmlNewChild1Prop(psMapMLHead, "map-meta", NULL, "charset", pszEncoding);
 
-  _xmlNewChild2Prop(psMapMLHead, "meta", NULL, "http-equiv", "Content-Type",
+  _xmlNewChild2Prop(psMapMLHead, "map-meta", NULL, "http-equiv", "Content-Type",
                     "content", CPLSPrintf("text/mapml;projection=%s", pszProjection) );
 
   /* link rel=license - mapped to *_attribution_* metadata */
   pszVal1 = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), pszNamespaces, "attribution_onlineresource" );
   pszVal2 = msOWSLookupMetadata2( &(lp->metadata), &(map->web.metadata), pszNamespaces, "attribution_title" );
   if (pszVal1 || pszVal2)
-    _xmlNewChild3Prop(psMapMLHead, "link", NULL, "rel", "license", "href", pszVal1, "title", pszVal2);
+    _xmlNewChild3Prop(psMapMLHead, "map-link", NULL, "rel", "license", "href", pszVal1, "title", pszVal2);
 
   /* link rel=legend  */
   pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetLegendGraphic&VERSION=1.3.0&FORMAT=image/png&LAYER=%s&STYLE=%s&SLD_VERSION=1.1.0", script_url, pszLayer, pszStyle);
-  _xmlNewChild2Prop(psMapMLHead, "link", NULL, "rel", "legend", "href", pszVal1);
+  _xmlNewChild2Prop(psMapMLHead, "map-link", NULL, "rel", "legend", "href", pszVal1);
 
   /* link rel=alternate projection */
   const char *papszAllProj[] = {"OSMTILE", "CBMTILE", "APSTILE", "WGS84", NULL};
@@ -394,7 +394,7 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
     if (!EQUAL(pszProjection, pszProj) &&
         msIsMapMLProjectionEnabled(map, lp, pszNamespaces, pszProj, TRUE) != NULL) {
       pszVal1 = CPLSPrintf("%sSERVICE=%s&REQUEST=GetMapML&LAYER=%s&STYLE=%s&PROJECTION=%s", script_url, pszService, pszLayer, pszStyle, pszProj);
-      _xmlNewChild3Prop(psMapMLHead, "link", NULL, "rel", "alternate", "projection", pszProj, "href", pszVal1);
+      _xmlNewChild3Prop(psMapMLHead, "map-link", NULL, "rel", "alternate", "projection", pszProj, "href", pszVal1);
     }
   }
   
@@ -405,9 +405,9 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
   for (int i=0; papszStyles && (pszAltStyle=papszStyles[i])!= NULL; i++) {
     pszVal1 = CPLSPrintf("%sSERVICE=%s&REQUEST=GetMapML&LAYER=%s&STYLE=%s&PROJECTION=%s", script_url, pszService, pszLayer, pszAltStyle, pszProjection);
     if (EQUAL(pszAltStyle, pszStyle))
-      _xmlNewChild3Prop(psMapMLHead, "link", NULL, "rel", "self style", "title", pszAltStyle, "href", pszVal1);
+      _xmlNewChild3Prop(psMapMLHead, "map-link", NULL, "rel", "self style", "title", pszAltStyle, "href", pszVal1);
     else
-      _xmlNewChild3Prop(psMapMLHead, "link", NULL, "rel", "style", "title", pszAltStyle, "href", pszVal1);
+      _xmlNewChild3Prop(psMapMLHead, "map-link", NULL, "rel", "style", "title", pszAltStyle, "href", pszVal1);
   }
   CSLDestroy(papszStyles);
   
@@ -430,25 +430,25 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
     pszImageFormat = "image/png";
     
   /* <extent> */
-  xmlNodePtr psMapMLExtent = _xmlNewChild1Prop(psMapMLBody, "extent", NULL, "units", pszProjection);
+  xmlNodePtr psMapMLExtent = _xmlNewChild1Prop(psMapMLBody, "map-extent", NULL, "units", pszProjection);
 
   if (EQUAL(pszMapMLMode, "tile")) {
     // MAPML TILE mode: Serve requested layer as tiled WMS GetMap requests
     // TODO: Should we allow this mode with WGS84?
     
-    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "txmin", "type", "location", "units", "tilematrix", "position", "top-left", "axis", "easting");
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "map-input", NULL, "name", "txmin", "type", "location", "units", "tilematrix", "position", "top-left", "axis", "easting");
     _xmlNewPropDouble(psNode, "min", ext.minx);
     _xmlNewPropDouble(psNode, "max", ext.maxx);
 
-    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "tymin", "type", "location", "units", "tilematrix", "position", "bottom-left", "axis", "northing");
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "map-input", NULL, "name", "tymin", "type", "location", "units", "tilematrix", "position", "bottom-left", "axis", "northing");
     _xmlNewPropDouble(psNode, "min", ext.miny);
     _xmlNewPropDouble(psNode, "max", ext.maxy);
 
-    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "txmax", "type", "location", "units", "tilematrix", "position", "top-right", "axis", "easting");
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "map-input", NULL, "name", "txmax", "type", "location", "units", "tilematrix", "position", "top-right", "axis", "easting");
     _xmlNewPropDouble(psNode, "min", ext.minx);
     _xmlNewPropDouble(psNode, "max", ext.maxx);
 
-    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "tymax", "type", "location", "units", "tilematrix", "position", "top-left", "axis", "northing");
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "map-input", NULL, "name", "tymax", "type", "location", "units", "tilematrix", "position", "top-left", "axis", "northing");
     _xmlNewPropDouble(psNode, "min", ext.miny);
     _xmlNewPropDouble(psNode, "max", ext.maxy);
 
@@ -459,7 +459,7 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
 
     /* GetMap URL */
     pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetMap&FORMAT=%s&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&WIDTH=256&HEIGHT=256&CRS=%s&BBOX=%s&m4h=t", script_url, pszImageFormat, pszLayer, pszStyle, pszCRS, pszBBOX);
-    psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "tile", "tref", pszVal1);
+    psNode = _xmlNewChild2Prop(psMapMLExtent, "map-link", NULL, "rel", "tile", "tref", pszVal1);
 
     // TODO: Add WMS GetFeatureInfo (share code with "image" case)
     
@@ -473,42 +473,42 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
       pszLayer = "all";
 
     // TODO: map to real zoom/axis values here
-    psNode = _xmlNewChild2Prop(psMapMLExtent, "input", NULL, "name", "z", "type", "zoom");
+    psNode = _xmlNewChild2Prop(psMapMLExtent, "map-input", NULL, "name", "z", "type", "zoom");
     _xmlNewPropInt(psNode, "value", 10);
     _xmlNewPropInt(psNode, "min", 4);
     _xmlNewPropInt(psNode, "max", 15);
 
-    psNode = _xmlNewChild4Prop(psMapMLExtent, "input", NULL, "name", "y", "type", "location", "units", "tilematrix", "axis", "row");
+    psNode = _xmlNewChild4Prop(psMapMLExtent, "map-input", NULL, "name", "y", "type", "location", "units", "tilematrix", "axis", "row");
     _xmlNewPropInt(psNode, "min", 0);
     _xmlNewPropInt(psNode, "max", 32768);
 
-    psNode = _xmlNewChild4Prop(psMapMLExtent, "input", NULL, "name", "x", "type", "location", "units", "tilematrix", "axis", "column");
+    psNode = _xmlNewChild4Prop(psMapMLExtent, "map-input", NULL, "name", "x", "type", "location", "units", "tilematrix", "axis", "column");
     _xmlNewPropInt(psNode, "min", 0);
     _xmlNewPropInt(psNode, "max", 32768);
 
     pszVal1 = CPLSPrintf("%smode=tile&tilemode=gmap&FORMAT=%s&LAYERS=%s&tile={x}+{y}+{z}&m4h=t", script_url, pszImageFormat, pszLayer);
-    psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "tile", "tref", pszVal1);
+    psNode = _xmlNewChild2Prop(psMapMLExtent, "map-link", NULL, "rel", "tile", "tref", pszVal1);
     
   }
   else if (EQUAL(pszMapMLMode, "image")) {
     // Produce full screen WMS GetMap requests
 
-    _xmlNewChild2Prop(psMapMLExtent, "input", NULL, "name", "w", "type", "width");
-    _xmlNewChild2Prop(psMapMLExtent, "input", NULL, "name", "h", "type", "height");
+    _xmlNewChild2Prop(psMapMLExtent, "map-input", NULL, "name", "w", "type", "width");
+    _xmlNewChild2Prop(psMapMLExtent, "map-input", NULL, "name", "h", "type", "height");
 
-    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "xmin", "type", "location", "units", "pcrs", "position", "top-left", "axis", "easting");
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "map-input", NULL, "name", "xmin", "type", "location", "units", "pcrs", "position", "top-left", "axis", "easting");
     _xmlNewPropDouble(psNode, "min", ext.minx);
     _xmlNewPropDouble(psNode, "max", ext.maxx);
 
-    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "ymin", "type", "location", "units", "pcrs", "position", "bottom-left", "axis", "northing");
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "map-input", NULL, "name", "ymin", "type", "location", "units", "pcrs", "position", "bottom-left", "axis", "northing");
     _xmlNewPropDouble(psNode, "min", ext.miny);
     _xmlNewPropDouble(psNode, "max", ext.maxy);
 
-    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "xmax", "type", "location", "units", "pcrs", "position", "top-right", "axis", "easting");
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "map-input", NULL, "name", "xmax", "type", "location", "units", "pcrs", "position", "top-right", "axis", "easting");
     _xmlNewPropDouble(psNode, "min", ext.minx);
     _xmlNewPropDouble(psNode, "max", ext.maxx);
 
-    psNode = _xmlNewChild5Prop(psMapMLExtent, "input", NULL, "name", "ymax", "type", "location", "units", "pcrs", "position", "top-left", "axis", "northing");
+    psNode = _xmlNewChild5Prop(psMapMLExtent, "map-input", NULL, "name", "ymax", "type", "location", "units", "pcrs", "position", "top-left", "axis", "northing");
     _xmlNewPropDouble(psNode, "min", ext.miny);
     _xmlNewPropDouble(psNode, "max", ext.maxy);
 
@@ -519,23 +519,23 @@ this request. Check wms/ows_enable_request settings.", "msWriteMapMLLayer()");
 
     /* GetMap URL */
     pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetMap&FORMAT=%s&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&WIDTH={w}&HEIGHT={h}&CRS=%s&BBOX=%s&m4h=t", script_url, pszImageFormat, pszLayer, pszStyle, pszCRS, pszBBOX);
-    psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "image", "tref", pszVal1);
+    psNode = _xmlNewChild2Prop(psMapMLExtent, "map-link", NULL, "rel", "image", "tref", pszVal1);
 
 
     /* If layer is queryable then enable GetFeatureInfo */
     // TODO Check if layer is queryable (also need to check top-level map, groups, nested groups)
     // TODO: Check if wms_getfeatureinfo_formatlist includes text/mapml */
     // TODO: handle optional feature count
-    psNode = _xmlNewChild4Prop(psMapMLExtent, "input", NULL, "name", "i", "type", "location", "axis", "i", "units", "map");
+    psNode = _xmlNewChild4Prop(psMapMLExtent, "map-input", NULL, "name", "i", "type", "location", "axis", "i", "units", "map");
     _xmlNewPropInt(psNode, "min", 0);
     _xmlNewPropInt(psNode, "max", 0);
 
-    psNode = _xmlNewChild4Prop(psMapMLExtent, "input", NULL, "name", "j", "type", "location", "axis", "j", "units", "map");
+    psNode = _xmlNewChild4Prop(psMapMLExtent, "map-input", NULL, "name", "j", "type", "location", "axis", "j", "units", "map");
     _xmlNewPropInt(psNode, "min", 0);
     _xmlNewPropInt(psNode, "max", 0);
 
     pszVal1 = CPLSPrintf("%sSERVICE=WMS&REQUEST=GetFeatureInfo&INFO_FORMAT=text/mapml&FEATURE_COUNT=1&TRANSPARENT=TRUE&VERSION=1.3.0&LAYERS=%s&STYLES=%s&QUERY_LAYERS=%s&WIDTH={w}&HEIGHT={h}&CRS=%s&BBOX=%s&x={i}&y={j}&m4h=t", script_url, pszLayer, pszStyle, pszLayer, pszCRS, pszBBOX);
-    psNode = _xmlNewChild2Prop(psMapMLExtent, "link", NULL, "rel", "query", "tref", pszVal1);
+    psNode = _xmlNewChild2Prop(psMapMLExtent, "map-link", NULL, "rel", "query", "tref", pszVal1);
 
   }
   else if (EQUAL(pszMapMLMode, "features")) {
@@ -606,18 +606,18 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
   msIO_setHeader("Access-Control-Allow-Origin","*");
   msIO_sendHeaders();
 
-  msIO_fprintf(fp, "<mapml>\n");
-  msIO_fprintf(fp, "  <head>\n");
-  msIO_fprintf(fp, "  <title>GetFeatureInfo Results</title>\n");
-  //msIO_fprintf(fp, "  <base href=\"TODO-href\" />\n");
-  msIO_fprintf(fp, "  <meta charset=\"utf-8\" />\n");
+  msIO_fprintf(fp, "<mapml- xmlns=\"http://www.w3.org/1999/xhtml\">\n");
+  msIO_fprintf(fp, "  <map-head>\n");
+  msIO_fprintf(fp, "  <map-title>GetFeatureInfo Results</map-title>\n");
+  //msIO_fprintf(fp, "  <map-base href=\"TODO-href\" />\n");
+  msIO_fprintf(fp, "  <map-meta charset=\"utf-8\" ></map-meta>\n");
   // TODO: Add PROJECTION param to Content-Type value
-  msIO_fprintf(fp, "  <meta http-equiv=\"Content-Type\" content=\"text/mapml\" />\n");
+  msIO_fprintf(fp, "  <map-meta http-equiv=\"Content-Type\" content=\"text/mapml\" ></map-meta>\n");
 
-  msIO_fprintf(fp, "  </head>\n");
+  msIO_fprintf(fp, "  </map-head>\n");
 
-  msIO_fprintf(fp, "  <body>\n");
-  msIO_fprintf(fp, "    <extent />\n");  // Mandatory extent element (empty)
+  msIO_fprintf(fp, "  <map-body>\n");
+  msIO_fprintf(fp, "    <map-extent />\n");  // Mandatory extent element (empty)
 
   /* Look up map SRS. We need an EPSG code for GML, if not then we get null and we'll fall back on the layer's SRS */
   msOWSGetEPSGProj(&(map->projection), NULL, namespaces, MS_TRUE, &pszMapSRS);
@@ -652,7 +652,7 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
       sprintf(layername, "%s", lp->name);
       //msOWSPrintValidateMetadata(fp, &(lp->metadata), namespaces, "layername", OWS_NOERR, "\t<%s>\n", layername);
 
-      layertitle = (char *) msOWSLookupMetadata(&(lp->metadata), "OM", "title");
+      layertitle = (char *) msOWSLookupMetadata(&(lp->metadata), "OM", "map-title");
       if (layertitle) {
         //msOWSPrintEncodeMetadata(fp, &(lp->metadata), namespaces, "title", OWS_NOERR, "\t<gml:name>%s</gml:name>\n", layertitle);
       }
@@ -695,7 +695,7 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
 #endif
 
         /* start this feature */
-        msIO_fprintf(fp, "      <feature id=\"%s.%ld\" class=\"%s\">\n", layername, shape.index, layername);
+        msIO_fprintf(fp, "      <map-feature id=\"%s.%ld\" class=\"%s\">\n", layername, shape.index, layername);
 
         // TODO: handle geomeotry output...
         //
@@ -710,7 +710,7 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
         */
         
         /* write properties */
-        msIO_fprintf(fp, "        <properties>\n");
+        msIO_fprintf(fp, "        <map-properties>\n");
         msIO_fprintf(fp, "          <table>\n");
         msIO_fprintf(fp, "            <thead>\n");
         msIO_fprintf(fp, "              <tr>\n");
@@ -732,11 +732,11 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
         }
 
         msIO_fprintf(fp, "          </table>\n");
-        msIO_fprintf(fp, "        </properties>\n");
+        msIO_fprintf(fp, "        </map-properties>\n");
 
 
         /* end this feature */
-        msIO_fprintf(fp, "      </feature>\n");
+        msIO_fprintf(fp, "      </map-feature>\n");
 
         msFreeShape(&shape); /* init too */
       }
@@ -760,8 +760,8 @@ int msWriteMapMLQuery(mapObj *map, FILE *fp, const char *namespaces)
 
   
   /* end this document */
-  msIO_fprintf(fp, "  </body>\n");
-  msIO_fprintf(fp, "</mapml>\n");
+  msIO_fprintf(fp, "  </map-body>\n");
+  msIO_fprintf(fp, "</mapml->\n");
 
 
   return(MS_SUCCESS);
